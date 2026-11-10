@@ -461,7 +461,7 @@ const SUPABASE_KEY="sb_publishable_USOxmbW2mxSpQF_3mzxAGw_pt4OuISG";
 /* FUNCTION NAMES */
 
 const CHECK_FUNCTION="check-username";
-const REGISTER_FUNCTION="Register-username";
+const REGISTER_FUNCTION="register-username";
 
 /* NOSTR RELAYS */
 
@@ -553,24 +553,41 @@ db.write();
 
 async function supabaseRequest(functionName,body){
 
-const response=await fetch(
-SUPABASE_URL+"/functions/v1/"+functionName,
-{
+const endpoint=SUPABASE_URL+"/functions/v1/"+functionName;
+let response;
+
+try{
+response=await fetch(endpoint,{
 method:"POST",
+mode:"cors",
 headers:{
 "Content-Type":"application/json",
 "apikey":SUPABASE_KEY,
 "Authorization":"Bearer "+SUPABASE_KEY
 },
-body:JSON.stringify(body)
-}
+body:JSON.stringify(body),
+cache:"no-store"
+});
+}catch(error){
+console.error("RUSTLE Supabase network/CORS error:",error);
+throw new Error(
+"Could not reach Supabase. Check your internet connection, project URL, and that the Edge Function is deployed with the exact name: "+functionName+". If these are correct, check the function's CORS response."
 );
+}
 
-const result=await response.json().catch(()=>({}));
+const raw=await response.text();
+let result={};
+
+try{
+result=raw?JSON.parse(raw):{};
+}catch{
+result={message:raw||"Supabase returned an empty response."};
+}
 
 if(!response.ok){
+console.error("RUSTLE Supabase response:",response.status,result);
 throw new Error(
-result.error||result.message||"Supabase request failed ("+response.status+")"
+result.error||result.message||("Supabase returned HTTP "+response.status)
 );
 }
 
@@ -615,6 +632,10 @@ const result=await supabaseRequest(
 CHECK_FUNCTION,
 {username}
 );
+
+if(typeof result.available!=="boolean"){
+throw new Error("The check-username function returned an unexpected response. Confirm it returns { username, available }.");
+}
 
 if(result.available){
 
