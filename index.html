@@ -15,22 +15,23 @@
 <style>
 :root{
 color-scheme:dark;
---bg:#101a16;
---panel:#192821;
---panel2:#20352c;
---ink:#edf5f0;
---mut:#9bb2a6;
---line:#2b4438;
+--bg:#0f1815;
+--panel:#17251f;
+--panel2:#1f3229;
+--ink:#eef6f1;
+--mut:#8fa89b;
+--line:#233a30;
 --acc:#45d6a1;
---sent:#176c50;
+--sent:#17785a;
 --danger:#ff8585;
+--tap:#ffffff0d
 }
-*{box-sizing:border-box}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;margin:0}
 body{
 background:var(--bg);
 color:var(--ink);
-font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;
+font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
 padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)
 }
 button,input,textarea{font:inherit}
@@ -41,15 +42,14 @@ padding:11px 15px;
 background:var(--acc);
 color:#06251a;
 font-weight:700;
-cursor:pointer
+cursor:pointer;
+transition:transform .08s,opacity .15s
 }
+button:active{transform:scale(.97)}
 button:disabled{opacity:.5;cursor:not-allowed}
-.alt{
-background:var(--panel2);
-color:var(--ink);
-border:1px solid var(--line)
-}
-.quiet{background:transparent;color:var(--mut);padding:8px}
+button:focus-visible,.row:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.alt{background:var(--panel2);color:var(--ink);border:1px solid var(--line)}
+.quiet{background:transparent;color:var(--mut);padding:8px 10px}
 .hidden{display:none!important}
 input,textarea{
 min-width:0;
@@ -63,6 +63,8 @@ font-size:16px;
 outline:none
 }
 input:focus,textarea:focus{border-color:var(--acc)}
+
+/* landing */
 #landing{
 min-height:100%;
 display:flex;
@@ -73,86 +75,100 @@ text-align:center;
 padding:24px;
 gap:14px
 }
-#landing img{width:88px;height:88px;border-radius:22px}
-#landing h1{margin:0;font-size:30px}
+#landing img{width:96px;height:96px;border-radius:24px}
+#landing h1{margin:0;font-size:32px;letter-spacing:.01em}
 #landing p{margin:0;color:var(--mut);max-width:380px}
-.screen{
-height:100dvh;
-min-height:0;
-display:flex;
-flex-direction:column
-}
-header{
-padding:12px 14px;
-border-bottom:1px solid var(--line);
+#landing button{padding:13px 26px;font-size:16px;border-radius:99px}
+
+/* screens */
+.screen{height:100dvh;min-height:0;display:flex;flex-direction:column}
+.top{
+padding:10px 14px;
 display:flex;
 align-items:center;
-gap:10px;
-min-height:62px;
+gap:12px;
+min-height:60px;
 background:var(--bg)
 }
-header .brand{font-size:18px;font-weight:750}
-#status{font-size:12px;color:var(--mut)}
-#me{
-font-size:12px;
-background:var(--panel);
-color:var(--ink);
-border:1px solid var(--line);
-padding:8px 10px;
-border-radius:99px
-}
-.scroll{
-flex:1;
-min-height:0;
-overflow:auto;
-padding:12px 14px;
-overscroll-behavior:contain
-}
-.bar{
-padding:10px 12px calc(10px + env(safe-area-inset-bottom));
-border-top:1px solid var(--line);
-display:flex;
-gap:8px;
-background:var(--bg)
-}
-.bar input{flex:1}
-.empty{
-text-align:center;
-color:var(--mut);
-margin:45px auto;
-max-width:330px
-}
-.empty strong{
-display:block;
-color:var(--ink);
-font-size:17px;
-margin-bottom:6px
-}
-.ct{
-display:flex;
-align-items:center;
-gap:10px;
-padding:12px;
-background:var(--panel);
-border:1px solid transparent;
-border-radius:14px;
-margin-bottom:8px;
-cursor:pointer
-}
-.ct:active{border-color:var(--acc)}
+.brand{font-size:22px;font-weight:800;letter-spacing:.01em;line-height:1.1}
+.brandcol{flex:1;min-width:0}
+.statusrow{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--mut)}
+.statusrow .dot{width:7px;height:7px;border-radius:50%;background:#6b7f74;flex:none}
+.statusrow.ok .dot{background:var(--acc)}
+#status{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
 .avatar{
-width:42px;
-height:42px;
+width:48px;
+height:48px;
 flex:none;
 border-radius:50%;
 display:grid;
 place-items:center;
-background:var(--panel2);
-color:var(--acc);
-font-weight:800
+color:#fff;
+font-weight:800;
+font-size:17px;
+padding:0;
+text-shadow:0 1px 2px #0004
 }
+.avatar.sm{width:40px;height:40px;font-size:15px}
+.avatar.lg{width:88px;height:88px;font-size:32px}
+button.avatar{border:2px solid var(--line)}
+
+.searchwrap{padding:2px 14px 10px;background:var(--bg)}
+.searchbox{
+display:flex;
+align-items:center;
+gap:8px;
+background:var(--panel);
+border:1px solid var(--line);
+border-radius:14px;
+padding:0 6px 0 13px;
+transition:border-color .15s
+}
+.searchbox:focus-within{border-color:var(--acc)}
+.searchbox svg{flex:none;color:var(--mut)}
+.searchbox input{border:0;background:transparent;padding:12px 4px;border-radius:0}
+.clear{
+width:30px;height:30px;padding:0;
+border-radius:50%;
+background:var(--panel2);
+color:var(--mut);
+font-size:13px;
+flex:none
+}
+
+.scroll{
+flex:1;
+min-height:0;
+overflow:auto;
+padding:0 14px 14px;
+overscroll-behavior:contain
+}
+.notice{
+display:flex;
+align-items:flex-start;
+gap:8px;
+padding:9px 6px 9px 12px;
+background:var(--panel);
+border-radius:12px;
+color:var(--mut);
+font-size:12px;
+margin:0 0 6px
+}
+.notice span{flex:1;padding-top:5px}
+
+/* rows */
+.row{
+display:flex;
+align-items:center;
+gap:12px;
+padding:10px 6px;
+border-radius:14px;
+cursor:pointer
+}
+.row:active{background:var(--tap)}
 .ctmain{flex:1;min-width:0}
-.n{font-weight:700}
+.n{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .p{
 color:var(--mut);
 font-size:13px;
@@ -160,74 +176,92 @@ white-space:nowrap;
 overflow:hidden;
 text-overflow:ellipsis
 }
+.row.unread .n,.row.unread .p{color:var(--ink)}
+.row.unread .p{font-weight:600}
 .ctmeta{
 font-size:11px;
 color:var(--mut);
 text-align:right;
-white-space:nowrap
+white-space:nowrap;
+display:flex;
+flex-direction:column;
+align-items:flex-end;
+gap:5px
 }
 .badge{
 display:inline-grid;
 place-items:center;
 min-width:19px;
 height:19px;
+padding:0 5px;
 border-radius:20px;
 background:var(--acc);
 color:#06251a;
 font-size:11px;
-font-weight:800;
-margin-top:4px
+font-weight:800
 }
-.threadhead{flex:1;min-width:0}
-.threadhead b{
-display:block;
-overflow:hidden;
-text-overflow:ellipsis;
-white-space:nowrap
-}
-.threadhead small{color:var(--mut);font-size:11px}
-.back{
-background:transparent;
-color:var(--ink);
-font-size:24px;
-padding:4px 8px
-}
-#msgs{display:flex;flex-direction:column;gap:7px}
-.day{
-align-self:center;
-color:var(--mut);
-font-size:11px;
-margin:12px 0 4px
-}
+.pill{padding:8px 16px;border-radius:99px;font-size:13px;flex:none}
+.group{font-size:13px;font-weight:700;color:var(--mut);padding:14px 6px 4px}
+.hintrow{color:var(--mut);font-size:13px;padding:10px 6px}
+.skel{display:flex;align-items:center;gap:12px;padding:10px 6px}
+.skel i{display:block;background:var(--panel);border-radius:99px;animation:pulse 1.2s ease-in-out infinite}
+.skel .a{width:48px;height:48px}
+.skel .b{height:12px;width:55%;border-radius:6px;margin-bottom:8px}
+.skel .c{height:10px;width:35%;border-radius:6px}
+@keyframes pulse{50%{opacity:.45}}
+@media(prefers-reduced-motion:reduce){.skel i{animation:none}button{transition:none}}
+
+.empty{text-align:center;color:var(--mut);margin:60px auto 0;max-width:300px;display:flex;flex-direction:column;align-items:center;gap:8px}
+.empty .ring{width:76px;height:76px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;color:var(--acc);margin-bottom:6px}
+.empty strong{color:var(--ink);font-size:18px}
+.empty .two{width:100%;margin-top:10px}
+
+/* thread */
+.back{background:transparent;color:var(--ink);padding:6px 4px;display:grid;place-items:center;flex:none}
+.threadhead{flex:1;min-width:0;line-height:1.25}
+.threadhead b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.threadhead small{color:var(--mut);font-size:12px}
+#thread .top{border-bottom:1px solid var(--line);gap:10px}
+#msgs{display:flex;flex-direction:column;gap:3px;padding-top:8px}
+.day{align-self:center;color:var(--mut);font-size:11px;margin:14px 0 6px}
 .m{
-max-width:min(82%,560px);
-padding:9px 12px;
-border-radius:15px;
+max-width:min(80%,520px);
+padding:8px 12px;
+border-radius:18px 18px 18px 5px;
 background:var(--panel2);
 white-space:pre-wrap;
 overflow-wrap:anywhere;
-align-self:flex-start
+align-self:flex-start;
+margin-top:4px
 }
-.m.me{align-self:flex-end;background:var(--sent)}
-.m small{
-display:block;
-font-size:10px;
-opacity:.75;
-text-align:right;
-margin-top:3px
+.m.me{align-self:flex-end;background:var(--sent);border-radius:18px 18px 5px 18px}
+.m small{display:block;font-size:10px;opacity:.7;text-align:right;margin-top:2px}
+.m .retry{font-size:11px;text-decoration:underline;color:#ffe1a8;background:none;padding:2px 0;margin-left:8px}
+.intro{display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;margin:36px auto 0;max-width:300px}
+.introname{font-size:20px;font-weight:800;margin-top:8px}
+.bio{color:var(--ink);font-size:14px;margin-top:6px;overflow-wrap:anywhere}
+.intro .hint{margin-top:10px}
+.chip{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:99px;margin-top:12px;padding:9px 18px}
+
+.bar{
+padding:10px 12px calc(10px + env(safe-area-inset-bottom));
+border-top:1px solid var(--line);
+display:flex;
+align-items:center;
+gap:8px;
+background:var(--bg)
 }
-.m .retry{
-font-size:11px;
-text-decoration:underline;
-color:#ffe1a8;
-background:none;
-padding:2px 0;
-margin-left:8px
+.bar input{flex:1;border-radius:99px;padding:12px 16px}
+#send{
+width:44px;height:44px;padding:0;border-radius:50%;
+display:grid;place-items:center;flex:none
 }
+
+/* identity sheet */
 #sheet{
 position:fixed;
 inset:0;
-background:#0009;
+background:#000a;
 display:flex;
 align-items:flex-end;
 justify-content:center;
@@ -239,7 +273,7 @@ width:100%;
 max-width:560px;
 max-height:90dvh;
 overflow:auto;
-border-radius:20px 20px 0 0;
+border-radius:22px 22px 0 0;
 padding:20px 18px calc(22px + env(safe-area-inset-bottom));
 display:flex;
 flex-direction:column;
@@ -259,31 +293,16 @@ padding:12px
 .two{display:flex;gap:8px}
 .two>*{flex:1}
 .hint{font-size:12px;color:var(--mut)}
-.section{
-border-top:1px solid var(--line);
-padding-top:12px;
-display:grid;
-gap:8px
-}
+.section{border-top:1px solid var(--line);padding-top:12px;display:grid;gap:8px}
 .section h3{font-size:14px;margin:0}
 .toast{color:var(--acc);font-size:12px;min-height:18px}
-.search{margin-bottom:10px}
-.notice{
-padding:10px 12px;
-border:1px solid #725b32;
-background:#392f1d;
-color:#ffe3ad;
-border-radius:12px;
-font-size:12px;
-margin:10px 14px
-}
 .success{color:var(--acc)}
 .error{color:var(--danger)}
 .username-label{font-size:12px;color:var(--mut)}
+
 @media(min-width:700px){
-#home{max-width:760px;width:100%;margin:auto;border-left:1px solid var(--line);border-right:1px solid var(--line)}
-#thread{max-width:900px;width:100%;margin:auto;border-left:1px solid var(--line);border-right:1px solid var(--line)}
-body{background:#0b120f}
+body{background:#0a110e}
+#home,#thread{max-width:760px;width:100%;margin:auto;border-left:1px solid var(--line);border-right:1px solid var(--line);background:var(--bg)}
 }
 </style>
 </head>
@@ -299,37 +318,40 @@ body{background:#0b120f}
 </section>
 
 <section id="home" class="screen hidden">
-<header>
-<div style="flex:1">
+<header class="top">
+<div class="brandcol">
 <div class="brand">RUSTLE</div>
-<div id="status">Starting…</div>
+<div class="statusrow"><i class="dot"></i><span id="status">Starting…</span></div>
 </div>
-<button id="me">My ID · ⋯</button>
+<button id="me" class="avatar" aria-label="My profile"></button>
 </header>
 
-<div class="notice">
-Your messages are encrypted, but relays store and forward encrypted event data.
+<div class="searchwrap">
+<label class="searchbox">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+<input id="search" type="text" placeholder="Search chats or @username" autocomplete="off" autocapitalize="none" spellcheck="false" enterkeyhint="search">
+<button id="clearSearch" class="clear hidden" aria-label="Clear search">✕</button>
+</label>
 </div>
 
 <div class="scroll">
-<input class="search" id="search" placeholder="Search contacts…" autocomplete="off">
-<div id="list"></div>
+<div class="notice" id="notice">
+<span>Your messages are encrypted, but relays store and forward encrypted event data.</span>
+<button id="closeNotice" class="quiet" aria-label="Dismiss">✕</button>
 </div>
-
-<div class="bar">
-<input id="pk" placeholder="Paste npub, public key or invite link…" autocomplete="off" autocapitalize="off" spellcheck="false">
-<button id="add">Add</button>
+<div id="list"></div>
 </div>
 </section>
 
 <section id="thread" class="screen hidden">
-<header>
-<button class="back" id="back">‹</button>
+<header class="top">
+<button class="back" id="back" aria-label="Back"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>
+<div class="avatar sm" id="tavatar"></div>
 <div class="threadhead">
 <b id="title"></b>
 <small id="peer"></small>
 </div>
-<button class="quiet" id="chatMenu">⋮</button>
+<button class="quiet" id="chatMenu" aria-label="Chat options">⋮</button>
 </header>
 
 <div class="scroll" id="sc">
@@ -337,8 +359,8 @@ Your messages are encrypted, but relays store and forward encrypted event data.
 </div>
 
 <div class="bar">
-<input id="txt" placeholder="Write a message…" autocomplete="off">
-<button id="send">Send</button>
+<input id="txt" placeholder="Message…" autocomplete="off" enterkeyhint="send">
+<button id="send" aria-label="Send"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3.4 20.4 21 12 3.4 3.6l.01 6.5L15 12 3.4 13.9z"/></svg></button>
 </div>
 </section>
 
@@ -462,6 +484,7 @@ const SUPABASE_KEY="sb_publishable_USOxmbW2mxSpQF_3mzxAGw_pt4OuISG";
 
 const CHECK_FUNCTION="check-username";
 const REGISTER_FUNCTION="register-username";
+const SEARCH_FUNCTION="search-username";
 
 /* NOSTR RELAYS */
 
@@ -520,6 +543,7 @@ data.messages=JSON.parse(localStorage.getItem("w-msgs")||"{}");
 data.contacts=data.contacts||{};
 data.messages=data.messages||{};
 data.unread=data.unread||{};
+data.profiles=data.profiles||{};
 
 const hex=b=>Array.from(b,x=>x.toString(16).padStart(2,"0")).join("");
 
@@ -535,6 +559,7 @@ toast.timer=setTimeout(()=>$("toast").textContent="",3500);
 
 function status(t){
 $("status").textContent=t;
+$("status").parentNode.classList.toggle("ok",/^Connected/.test(t));
 }
 
 function show(id){
@@ -547,6 +572,7 @@ $(id).classList.add("hidden");
 
 function save(){
 db.write();
+renderMe();
 }
 
 /* SUPABASE REQUEST */
@@ -873,6 +899,8 @@ localStorage.setItem("whisper-secret",hex(sk));
 
 $("npub").textContent=npub;
 
+renderMe();
+
 hide("nsec");
 hide("copyNsec");
 
@@ -915,7 +943,7 @@ if(!NT){
 
 status("Encryption library failed to load.");
 
-$("add").disabled=true;
+$("search").disabled=true;
 $("send").disabled=true;
 
 return;
@@ -958,6 +986,8 @@ Object.values(data.messages).flat().map(m=>m.id)
 
 renderList();
 
+if(data.hideNotice)$("notice").classList.add("hidden");
+
 connect();
 
 if(data.username){
@@ -981,9 +1011,11 @@ const invite=location.hash.match(/(?:add=)([^&]+)/);
 
 if(invite){
 
-$("pk").value=decodeURIComponent(invite[1]);
+$("search").value=decodeURIComponent(invite[1]);
 
-status("Invite detected — tap Add.");
+onSearch();
+
+status("Invite detected — tap Message.");
 
 }
 
@@ -1175,11 +1207,11 @@ tags:[["p",peer]],
 content
 },sk);
 
-if(retryId){
+{
 
 const a=getMessages(peer);
 
-const i=a.findIndex(x=>x.id===retryId);
+const i=a.findIndex(x=>x.id===localId);
 
 if(i>=0)a.splice(i,1);
 
@@ -1256,7 +1288,259 @@ return (n||"?").trim()
 
 }
 
+/* UI HELPERS */
+
+function el(tag,cls,text){
+const n=document.createElement(tag);
+if(cls)n.className=cls;
+if(text!=null)n.textContent=text;
+return n;
+}
+
+function paintAvatar(n,pk,name){
+const h=parseInt((pk||"000000").slice(0,6),16)%360;
+n.style.background="hsl("+h+" 42% 38%)";
+n.textContent=initials(String(name||"?").replace(/^@/,""));
+}
+
+function renderMe(){
+const b=$("me");
+if(!b)return;
+paintAvatar(b,me,data.displayName||data.username||"Me");
+b.title=data.username?"@"+data.username:"My profile";
+}
+
+function group(t){return el("div","group",t)}
+
+function personRow(pk,title,sub,btn,onclick){
+const row=el("div","row");
+const av=el("div","avatar");
+paintAvatar(av,pk,title);
+const main=el("div","ctmain");
+main.append(el("div","n",title),el("div","p",sub));
+row.append(av,main);
+if(btn){
+const b=el("button","pill",btn);
+b.onclick=e=>{e.stopPropagation();onclick()};
+row.append(b);
+}
+row.onclick=onclick;
+return row;
+}
+
+/* PEOPLE SEARCH (username lookup) */
+
+let people={q:"",state:"idle",items:[],pk:null};
+let peopleTimer=null;
+const peopleCache=new Map();
+
+function onSearch(){
+
+const raw=$("search").value;
+$("clearSearch").classList.toggle("hidden",!raw);
+
+clearTimeout(peopleTimer);
+
+const q=cleanUsername(raw);
+const pk=(NT&&raw.trim())?parsePub(raw):null;
+
+if(pk||q.length<2||!/^[a-z0-9_]+$/.test(q)||/^npub1/.test(q)){
+people={q:"",state:"idle",items:[],pk};
+renderList();
+return;
+}
+
+if(peopleCache.has(q)){
+people={q,state:"done",items:peopleCache.get(q),pk:null};
+renderList();
+return;
+}
+
+people={q,state:"loading",items:[],pk:null};
+renderList();
+
+peopleTimer=setTimeout(()=>searchPeople(q),300);
+
+}
+
+async function searchPeople(q){
+
+let next;
+
+try{
+
+const r=await supabaseRequest(SEARCH_FUNCTION,{query:q,limit:10});
+
+const items=(Array.isArray(r.results)?r.results:[])
+.filter(x=>x&&typeof x.username==="string"&&/^[0-9a-f]{64}$/i.test(x.public_key||""))
+.map(x=>({...x,public_key:x.public_key.toLowerCase()}));
+
+peopleCache.set(q,items);
+
+next={q,state:"done",items,pk:null};
+
+}catch(e){
+
+console.error("RUSTLE search error:",e);
+
+next={
+q,
+state:"error",
+items:[],
+pk:null,
+error:/not found|404/i.test(e.message)
+?"Username search isn't set up on the server yet."
+:"Couldn't search right now. Check your connection and try again."
+};
+
+}
+
+if(people.q!==q)return;
+
+people=next;
+renderList();
+
+}
+
+function firstTarget(){
+
+if(people.pk&&people.pk!==me)return{public_key:people.pk};
+
+return people.items.find(x=>x.public_key!==me)||null;
+
+}
+
+function startChat(p){
+
+const pk=p.public_key;
+
+if(!pk||pk===me)return;
+
+const old=data.contacts[pk];
+
+if(!old||/^Friend [0-9a-f]{6}$/.test(old)){
+data.contacts[pk]=p.display_name||(p.username?"@"+p.username:"Friend "+pk.slice(0,6));
+}
+
+if(p.username){
+data.profiles[pk]={u:p.username,b:p.bio||""};
+}
+
+save();
+
+$("search").value="";
+people={q:"",state:"idle",items:[],pk:null};
+$("clearSearch").classList.add("hidden");
+
+history.replaceState(null,"",location.pathname+location.search);
+
+renderList();
+openThread(pk);
+
+}
+
 /* CONTACT LIST */
+
+function chatRow(pk){
+
+const a=getMessages(pk);
+const last=a.at(-1);
+const pr=data.profiles[pk]||{};
+
+const row=el("div","row"+(data.unread[pk]?" unread":""));
+
+const av=el("div","avatar");
+paintAvatar(av,pk,data.contacts[pk]);
+
+const main=el("div","ctmain");
+
+main.append(
+el("div","n",data.contacts[pk]),
+el("div","p",last?(last.me?"You: ":"")+last.text:(pr.u?"@"+pr.u:"No messages yet"))
+);
+
+const meta=el("div","ctmeta");
+
+if(last)meta.append(el("div",null,fmt(last.t)));
+
+if(data.unread[pk]){
+meta.append(el("span","badge",data.unread[pk]>99?"99+":String(data.unread[pk])));
+}
+
+row.append(av,main,meta);
+
+row.onclick=()=>openThread(pk);
+
+return row;
+
+}
+
+function renderPeople(box){
+
+if(people.pk){
+
+if(people.pk===me){
+box.append(el("div","hintrow","That's your own public ID."));
+return;
+}
+
+const pk=people.pk;
+
+box.append(group("Add by public ID"));
+
+box.append(personRow(
+pk,
+data.contacts[pk]||"New contact",
+NT.nip19.npubEncode(pk).slice(0,24)+"…",
+"Message",
+()=>startChat({public_key:pk})
+));
+
+return;
+
+}
+
+if(people.state==="idle")return;
+
+box.append(group("People"));
+
+if(people.state==="loading"){
+
+for(let i=0;i<2;i++){
+
+const s=el("div","skel");
+s.innerHTML='<i class="a"></i><div style="flex:1"><i class="b"></i><i class="c"></i></div>';
+box.append(s);
+
+}
+
+return;
+
+}
+
+if(people.state==="error"){
+box.append(el("div","hintrow error",people.error));
+return;
+}
+
+const items=people.items.filter(x=>x.public_key!==me);
+
+if(!items.length){
+box.append(el("div","hintrow","No one found for @"+people.q+". Check the spelling."));
+return;
+}
+
+items.forEach(x=>{
+
+const name=x.display_name||("@"+x.username);
+
+const sub=x.display_name?"@"+x.username+(x.bio?" · "+x.bio:""):(x.bio||"On RUSTLE");
+
+box.append(personRow(x.public_key,name,sub,"Message",()=>startChat(x)));
+
+});
+
+}
 
 function renderList(){
 
@@ -1264,21 +1548,40 @@ const box=$("list");
 
 box.textContent="";
 
-const q=$("search").value.toLowerCase().trim();
+const raw=$("search").value.trim();
+
+const q=raw.toLowerCase().replace(/^@/,"");
+
+$("notice").classList.toggle("hidden",!!raw||!!data.hideNotice);
 
 const ids=Object.keys(data.contacts)
-.filter(pk=>(data.contacts[pk]+" "+pk).toLowerCase().includes(q))
+.filter(pk=>{
+if(!q)return true;
+const pr=data.profiles[pk]||{};
+return (data.contacts[pk]+" "+(pr.u||"")+" "+pk).toLowerCase().includes(q);
+})
 .sort((a,b)=>(getMessages(b).at(-1)?.t||0)-(getMessages(a).at(-1)?.t||0));
 
-if(!ids.length){
+if(!raw&&!ids.length){
 
-const d=document.createElement("div");
+const d=el("div","empty");
 
-d.className="empty";
+const ring=el("div","ring");
+ring.innerHTML='<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>';
 
-d.innerHTML=
-"<strong>"+(q?"No matches":"Your chats start here")+"</strong>"+
-(q?"Try another search.":"Add someone using their public ID.");
+d.append(ring,el("strong",null,"Find people on RUSTLE"),el("div",null,"Search by @username to start a private chat."));
+
+const two=el("div","two");
+
+const find=el("button",null,"Search");
+find.onclick=()=>$("search").focus();
+
+const inv=el("button","alt","Invite a friend");
+inv.onclick=()=>$("share").click();
+
+two.append(find,inv);
+
+d.append(two);
 
 box.append(d);
 
@@ -1286,61 +1589,15 @@ return;
 
 }
 
-ids.forEach(pk=>{
+if(raw&&ids.length)box.append(group("Chats"));
 
-const a=getMessages(pk);
-const last=a.at(-1);
+ids.forEach(pk=>box.append(chatRow(pk)));
 
-const row=document.createElement("div");
-row.className="ct";
+if(raw)renderPeople(box);
 
-const av=document.createElement("div");
-av.className="avatar";
-av.textContent=initials(data.contacts[pk]);
-
-const main=document.createElement("div");
-main.className="ctmain";
-
-const n=document.createElement("div");
-n.className="n";
-n.textContent=data.contacts[pk];
-
-const p=document.createElement("div");
-p.className="p";
-p.textContent=last?(last.me?"You: ":"")+last.text:"No messages yet";
-
-main.append(n,p);
-
-const meta=document.createElement("div");
-meta.className="ctmeta";
-
-if(last){
-
-const tm=document.createElement("div");
-tm.textContent=fmt(last.t);
-
-meta.append(tm);
-
+if(raw&&!box.childNodes.length){
+box.append(el("div","hintrow","Type at least 2 letters of a @username."));
 }
-
-if(data.unread[pk]){
-
-const badge=document.createElement("span");
-
-badge.className="badge";
-badge.textContent=data.unread[pk]>99?"99+":data.unread[pk];
-
-meta.append(badge);
-
-}
-
-row.append(av,main,meta);
-
-row.onclick=()=>openThread(pk);
-
-box.append(row);
-
-});
 
 }
 
@@ -1354,9 +1611,13 @@ data.unread[pk]=0;
 
 save();
 
+const pr=data.profiles[pk]||{};
+
 $("title").textContent=data.contacts[pk];
 
-$("peer").textContent=pk.slice(0,12)+"…";
+$("peer").textContent=pr.u?"@"+pr.u:pk.slice(0,12)+"…";
+
+paintAvatar($("tavatar"),pk,data.contacts[pk]);
 
 hide("home");
 show("thread");
@@ -1381,13 +1642,26 @@ let lastDay="";
 
 if(!list.length){
 
-const d=document.createElement("div");
+const d=el("div","intro");
 
-d.className="empty";
+const pr=data.profiles[current]||{};
 
-d.innerHTML=
-"<strong>Start a conversation</strong>"+
-"Messages are encrypted before being sent to relays.";
+const av=el("div","avatar lg");
+paintAvatar(av,current,data.contacts[current]);
+
+d.append(av,el("div","introname",data.contacts[current]));
+
+if(pr.u)d.append(el("div","p","@"+pr.u));
+
+if(pr.b)d.append(el("div","bio",pr.b));
+
+d.append(el("div","hint","Messages are encrypted before being sent to relays."));
+
+const chip=el("button","chip","👋 Say hi");
+
+chip.onclick=()=>{$("txt").value="👋";sendMessage()};
+
+d.append(chip);
 
 box.append(d);
 
@@ -1485,6 +1759,8 @@ save();
 
 $("title").textContent=data.contacts[current];
 
+paintAvatar($("tavatar"),current,data.contacts[current]);
+
 renderList();
 
 }
@@ -1506,6 +1782,7 @@ if(choice==="3"&&confirm("Remove contact and chat history?")){
 delete data.contacts[current];
 delete data.messages[current];
 delete data.unread[current];
+delete data.profiles[current];
 
 save();
 
@@ -1547,38 +1824,34 @@ function wire(){
 
 $("openApp").onclick=boot;
 
-$("add").onclick=()=>{
+$("search").onkeydown=e=>{
 
-const pk=parsePub($("pk").value);
+if(e.key!=="Enter")return;
 
-if(!pk){
+const t=firstTarget();
 
-alert("Enter a valid npub or public key.");
-
-return;
-
-}
-
-if(pk===me){
-
-alert("That is your own public ID.");
-
-return;
-
-}
-
-addContact(pk);
-
-$("pk").value="";
-
-history.replaceState(null,"",location.pathname+location.search);
-
-openThread(pk);
+if(t)startChat(t);
 
 };
 
-$("pk").onkeydown=e=>{
-if(e.key==="Enter")$("add").click();
+$("clearSearch").onclick=()=>{
+
+$("search").value="";
+
+onSearch();
+
+$("search").focus();
+
+};
+
+$("closeNotice").onclick=()=>{
+
+data.hideNotice=true;
+
+save();
+
+$("notice").classList.add("hidden");
+
 };
 
 $("send").onclick=()=>sendMessage();
@@ -1595,7 +1868,7 @@ sendMessage();
 
 };
 
-$("search").oninput=renderList;
+$("search").oninput=onSearch;
 
 $("back").onclick=back;
 
@@ -1655,7 +1928,7 @@ if(navigator.share){
 
 await navigator.share({
 title:"Chat with me on RUSTLE",
-text:"Add me on RUSTLE:",
+text:data.username?"Add me on RUSTLE — @"+data.username:"Add me on RUSTLE:",
 url
 });
 
