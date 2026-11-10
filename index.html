@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14201c">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Whisper Chat</title>
+<style>
+:root{--bg:#14201c;--card:#1c2d27;--ink:#eef3f0;--mut:#9db3a9;--acc:#3ecf9a;--line:#2a4038}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
+.hidden{display:none!important}
+/* Landing banner (browser tab) */
+#landing{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;gap:14px}
+#landing img{width:96px;height:96px;border-radius:22px}
+#landing h1{margin:0;font-size:30px}
+#landing p{margin:0;color:var(--mut);max-width:360px}
+button{font:inherit;border:0;border-radius:12px;padding:12px 22px;background:var(--acc);color:#07241a;font-weight:650;cursor:pointer}
+#ios{font-size:14px;color:var(--mut);max-width:320px}
+.link{background:none;color:var(--mut);font-weight:400;text-decoration:underline;padding:4px}
+/* Chat app (installed) */
+#app{height:100%;display:flex;flex-direction:column}
+header{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+header b{font-size:18px}
+#me{font:12px ui-monospace,Menlo,monospace;color:var(--mut)}
+#list{flex:1;overflow-y:auto;padding:16px}
+.empty{color:var(--mut);text-align:center;margin-top:40px}
+.bar{padding:12px;border-top:1px solid var(--line);display:flex;gap:8px}
+input{flex:1;min-width:0;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:11px 12px;font-size:16px}
+</style>
+</head>
+<body>
+
+<section id="landing" class="hidden">
+  <img src="icon-192.png" alt="">
+  <h1>Whisper Chat</h1>
+  <p>Private, end-to-end encrypted messaging. No accounts, no company server.</p>
+  <button id="install" class="hidden" type="button">Install app</button>
+  <div id="ios" class="hidden">On iPhone: tap Share, then “Add to Home Screen”.</div>
+  <button class="link" id="preview" type="button">Preview the chat screen</button>
+</section>
+
+<section id="app" class="hidden">
+  <header><b>Whisper</b><span id="me"></span></header>
+  <div id="list"><div class="empty">No chats yet.<br>Add a contact with their public key.</div></div>
+  <div class="bar"><input id="pk" placeholder="Paste a contact’s public key…"><button id="add" type="button">Add</button></div>
+</section>
+
+<script>
+const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+const preview = new URLSearchParams(location.search).has("app");
+const $ = id => document.getElementById(id);
+
+if (standalone || preview) { $("app").classList.remove("hidden"); startApp(); }
+else { $("landing").classList.remove("hidden"); }
+
+$("preview").onclick = () => { $("landing").classList.add("hidden"); $("app").classList.remove("hidden"); startApp(); };
+
+// Install button
+let deferred;
+addEventListener("beforeinstallprompt", e => { e.preventDefault(); deferred = e; $("install").classList.remove("hidden"); });
+$("install").onclick = async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; $("install").classList.add("hidden"); };
+if (/iphone|ipad/i.test(navigator.userAgent) && !standalone) $("ios").classList.remove("hidden");
+
+// Service worker
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+
+// Chat shell: identity placeholder (real keys + Nostr come in the next step)
+async function startApp() {
+  try {
+    let id = localStorage.getItem("whisper-id");
+    if (!id) { id = [...crypto.getRandomValues(new Uint8Array(16))].map(b => b.toString(16).padStart(2, "0")).join(""); localStorage.setItem("whisper-id", id); }
+    $("me").textContent = "ID " + id.slice(0, 8) + "…";
+  } catch (e) { $("me").textContent = "ID unavailable"; }
+}
+</script>
+</body>
+</html>
