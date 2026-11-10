@@ -1,257 +1,194 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#14201c">
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icon-192.png">
-<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="description" content="Private, end-to-end encrypted messaging using the Nostr relay network.">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icon-192.png">
+<link rel="apple-touch-icon" href="./icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Whisper Chat</title>
 <style>
-:root{--bg:#14201c;--card:#1c2d27;--ink:#eef3f0;--mut:#9db3a9;--acc:#3ecf9a;--line:#2a4038;--them:#243a32}
-*{box-sizing:border-box}
-html,body{height:100%;margin:0}
-body{background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
-.hidden{display:none!important}
-button{font:inherit;border:0;border-radius:12px;padding:12px 20px;background:var(--acc);color:#07241a;font-weight:650;cursor:pointer}
-.alt{background:var(--bg);color:var(--ink);border:1px solid var(--line)}
-.link{background:none;color:var(--mut);font-weight:400;text-decoration:underline;padding:4px}
-input{flex:1;min-width:0;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:11px 12px;font-size:16px}
-#landing{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;gap:14px}
-#landing img{width:96px;height:96px;border-radius:22px}
-#landing h1{margin:0;font-size:30px}
-#landing p{margin:0;color:var(--mut);max-width:360px}
-#ios{font-size:14px;color:var(--mut);max-width:320px}
-.screen{height:100%;display:flex;flex-direction:column}
-header{padding:12px 14px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:8px}
-header b{font-size:18px}
-#status{font-size:12px;color:var(--mut)}
-#me{font:12px ui-monospace,Menlo,monospace;color:var(--ink);background:var(--card);border:1px solid var(--line);padding:7px 12px;border-radius:99px;font-weight:400}
-.back{padding:6px 12px;background:none;color:var(--ink);font-size:20px}
-#title{flex:1;font-weight:650;font-size:17px;cursor:pointer}
-.scroll{flex:1;overflow-y:auto;padding:12px 14px}
-.empty{color:var(--mut);text-align:center;margin-top:40px}
-.bar{padding:10px 12px;border-top:1px solid var(--line);display:flex;gap:8px}
-.ct{display:flex;justify-content:space-between;gap:10px;padding:12px;background:var(--card);border-radius:14px;margin-bottom:8px;cursor:pointer}
-.ct .n{font-weight:650}.ct .p{color:var(--mut);font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:62vw}
-.ct .t{color:var(--mut);font-size:12px;white-space:nowrap}
-#msgs{display:flex;flex-direction:column;gap:6px}
-.m{max-width:80%;padding:8px 11px;border-radius:14px;background:var(--them);word-wrap:break-word;white-space:pre-wrap}
-.m.me{align-self:flex-end;background:#1f7a5e}
-.m small{display:block;font-size:11px;opacity:.7;text-align:right}
-#sheet{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center;z-index:5}
-#sheet .box{background:var(--card);width:100%;max-width:520px;border-radius:20px 20px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:12px}
-#sheet h2{margin:0;font-size:18px}
-.full{font:14px/1.5 ui-monospace,Menlo,monospace;word-break:break-all;user-select:all;-webkit-user-select:all;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px}
-.two{display:flex;gap:8px}.two button{flex:1}
-#toast{font-size:13px;color:var(--acc);min-height:18px}
+:root{color-scheme:dark;--bg:#101a16;--panel:#192821;--panel2:#20352c;--ink:#edf5f0;--mut:#9bb2a6;--line:#2b4438;--acc:#45d6a1;--sent:#176c50;--danger:#ff8585;--warn:#f4c879}
+*{box-sizing:border-box}html,body{height:100%;margin:0}body{background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+button,input,textarea{font:inherit}button{border:0;border-radius:12px;padding:11px 15px;background:var(--acc);color:#06251a;font-weight:700;cursor:pointer}button:disabled{opacity:.5;cursor:not-allowed}.alt{background:var(--panel2);color:var(--ink);border:1px solid var(--line)}.quiet{background:transparent;color:var(--mut);padding:8px}.danger{background:#492a2a;color:#ffdede}.hidden{display:none!important}
+input,textarea{min-width:0;width:100%;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:12px;font-size:16px;outline:none}input:focus,textarea:focus{border-color:var(--acc)}
+#landing{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;gap:14px}#landing img{width:88px;height:88px;border-radius:22px}#landing h1{margin:0;font-size:30px}#landing p{margin:0;color:var(--mut);max-width:380px}
+.screen{height:100dvh;min-height:0;display:flex;flex-direction:column}header{padding:12px 14px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;min-height:62px;background:var(--bg)}header .brand{font-size:18px;font-weight:750}#status{font-size:12px;color:var(--mut)}#me{font-size:12px;background:var(--panel);color:var(--ink);border:1px solid var(--line);padding:8px 10px;border-radius:99px}
+.scroll{flex:1;min-height:0;overflow:auto;padding:12px 14px;overscroll-behavior:contain}.bar{padding:10px 12px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--line);display:flex;gap:8px;background:var(--bg)}.bar input{flex:1}.empty{text-align:center;color:var(--mut);margin:45px auto;max-width:330px}.empty strong{display:block;color:var(--ink);font-size:17px;margin-bottom:6px}
+.ct{display:flex;align-items:center;gap:10px;padding:12px;background:var(--panel);border:1px solid transparent;border-radius:14px;margin-bottom:8px;cursor:pointer}.ct:active{border-color:var(--acc)}.avatar{width:42px;height:42px;flex:none;border-radius:50%;display:grid;place-items:center;background:var(--panel2);color:var(--acc);font-weight:800}.ctmain{flex:1;min-width:0}.n{font-weight:700}.p{color:var(--mut);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ctmeta{font-size:11px;color:var(--mut);text-align:right;white-space:nowrap}.badge{display:inline-grid;place-items:center;min-width:19px;height:19px;border-radius:20px;background:var(--acc);color:#06251a;font-size:11px;font-weight:800;margin-top:4px}
+.threadhead{flex:1;min-width:0}.threadhead b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.threadhead small{color:var(--mut);font-size:11px}.back{background:transparent;color:var(--ink);font-size:24px;padding:4px 8px}
+#msgs{display:flex;flex-direction:column;gap:7px}.day{align-self:center;color:var(--mut);font-size:11px;margin:12px 0 4px}.m{max-width:min(82%,560px);padding:9px 12px;border-radius:15px;background:var(--panel2);white-space:pre-wrap;overflow-wrap:anywhere;align-self:flex-start}.m.me{align-self:flex-end;background:var(--sent)}.m small{display:block;font-size:10px;opacity:.75;text-align:right;margin-top:3px}.m .retry{font-size:11px;text-decoration:underline;color:#ffe1a8;background:none;padding:2px 0;margin-left:8px}
+#sheet{position:fixed;inset:0;background:#0009;display:flex;align-items:flex-end;justify-content:center;z-index:5}#sheet .box{background:var(--panel);width:100%;max-width:560px;max-height:90dvh;overflow:auto;border-radius:20px 20px 0 0;padding:20px 18px calc(22px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:12px;border:1px solid var(--line)}.box h2{margin:0;font-size:19px}.full{font:12px/1.5 ui-monospace,monospace;overflow-wrap:anywhere;user-select:all;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px}.two{display:flex;gap:8px}.two>*{flex:1}.hint{font-size:12px;color:var(--mut)}.section{border-top:1px solid var(--line);padding-top:12px;display:grid;gap:8px}.section h3{font-size:14px;margin:0}.toast{color:var(--acc);font-size:12px;min-height:18px}.search{margin-bottom:10px}.tools{display:flex;gap:7px;align-items:center}.tools button{padding:8px 10px;font-size:12px}.error{color:var(--danger)}.notice{padding:10px 12px;border:1px solid #725b32;background:#392f1d;color:#ffe3ad;border-radius:12px;font-size:12px;margin:10px 14px}
+@media(min-width:700px){#home{max-width:760px;width:100%;margin:auto;border-left:1px solid var(--line);border-right:1px solid var(--line)}#thread{max-width:900px;width:100%;margin:auto;border-left:1px solid var(--line);border-right:1px solid var(--line)}body{background:#0b120f}}
 </style>
 </head>
 <body>
-
 <section id="landing" class="hidden">
-  <img src="icon-192.png" alt="">
-  <h1>Whisper Chat</h1>
-  <p>Private, end-to-end encrypted messaging. No accounts, no company server.</p>
-  <button id="install" class="hidden" type="button">Install app</button>
-  <div id="ios" class="hidden">On iPhone: tap Share, then “Add to Home Screen”.</div>
-  <button class="link" id="preview" type="button">Open in browser instead</button>
+<img src="./icon-192.png" alt=""><h1>Whisper Chat</h1>
+<p>Private, end-to-end encrypted messaging. No Whisper account or central messaging server. Messages travel through public Nostr relays.</p>
+<button id="openApp">Open Whisper</button>
+<p class="hint">Your private key stays on this device. Back it up securely from My ID.</p>
 </section>
 
 <section id="home" class="screen hidden">
-  <header><div><b>Whisper</b><div id="status">starting…</div></div><button id="me" type="button">My ID · tap</button></header>
-  <div class="scroll" id="list"></div>
-  <div class="bar"><input id="pk" placeholder="Paste a friend’s ID…" autocomplete="off"><button id="add" type="button">Add</button></div>
+<header><div style="flex:1"><div class="brand">Whisper</div><div id="status">Starting…</div></div><button id="me">My ID · ⋯</button></header>
+<div class="notice" id="securityNote">Your messages are encrypted, but relays still store and forward encrypted event data. Anyone with your private key can access your account.</div>
+<div class="scroll"><input class="search" id="search" placeholder="Search contacts…" autocomplete="off"><div id="list"></div></div>
+<div class="bar"><input id="pk" placeholder="Paste npub, public key or invite link…" autocomplete="off" autocapitalize="off" spellcheck="false"><button id="add">Add</button></div>
 </section>
 
 <section id="thread" class="screen hidden">
-  <header><button class="back" id="back" type="button">‹</button><div id="title"></div><div id="status2"></div></header>
-  <div class="scroll" id="sc"><div id="msgs"></div></div>
-  <div class="bar"><input id="txt" placeholder="Message…" autocomplete="off"><button id="send" type="button">Send</button></div>
+<header><button class="back" id="back" aria-label="Back">‹</button><div class="threadhead"><b id="title"></b><small id="peer"></small></div><button class="quiet" id="chatMenu" aria-label="Contact options">⋮</button></header>
+<div class="scroll" id="sc"><div id="msgs"></div></div>
+<div class="bar"><input id="txt" placeholder="Write a message…" autocomplete="off"><button id="send">Send</button></div>
 </section>
 
 <div id="sheet" class="hidden"><div class="box">
-  <h2>Your ID</h2>
-  <div class="full" id="full"></div>
-  <div class="two"><button id="copy" type="button">Copy ID</button><button id="share" class="alt" type="button">Share link</button></div>
-  <div id="toast"></div>
-  <button class="alt" id="close" type="button">Close</button>
+<h2>My Whisper identity</h2><div class="hint">Share your public ID with people who want to message you.</div>
+<div class="hint">Public ID (npub)</div><div class="full" id="npub"></div>
+<div class="two"><button id="copyNpub">Copy public ID</button><button id="share" class="alt">Share invite</button></div>
+<div class="section"><h3>Private-key backup</h3><div class="hint">Keep this secret. Anyone who gets it can impersonate you and read your encrypted conversations. Never send it to anyone.</div><button class="alt" id="revealKey">Show private key</button><div class="full hidden" id="nsec"></div><div class="two"><button class="alt hidden" id="copyNsec">Copy secret</button><button class="alt" id="downloadBackup">Download backup</button></div></div>
+<div class="section"><h3>Restore identity</h3><input id="restoreKey" placeholder="Paste your nsec or 64-character secret key" autocomplete="off" autocapitalize="off"><button class="alt" id="restore">Restore from secret key</button><div class="hint">Restoring replaces the identity on this device. Export your current key first if you need it.</div></div>
+<div class="section"><h3>About encryption</h3><div class="hint">This version uses Nostr NIP-04 encrypted direct messages. It is end-to-end encrypted but is an older Nostr format; message metadata (such as sender, recipient and time) is visible to relays. Use a trusted, up-to-date device and protect your screen lock.</div></div>
+<div class="toast" id="toast"></div><button class="alt" id="close">Close</button>
 </div></div>
-
 <script src="https://cdn.jsdelivr.net/npm/nostr-tools@2.7.2/lib/nostr.bundle.js"></script>
 <script>
-const $ = id => document.getElementById(id);
-const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
-
-let deferred;
-addEventListener("beforeinstallprompt", e => { e.preventDefault(); deferred = e; $("install").classList.remove("hidden"); });
-$("install").onclick = async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; $("install").classList.add("hidden"); };
-if (/iphone|ipad/i.test(navigator.userAgent) && !standalone) $("ios").classList.remove("hidden");
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
-
-if (standalone || new URLSearchParams(location.search).has("app")) startApp();
-else $("landing").classList.remove("hidden");
-$("preview").onclick = () => { $("landing").classList.add("hidden"); startApp(); };
-
-/* ---------- storage ---------- */
-const store = {
-  get(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } },
-  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
-};
-const hexOf = u8 => [...u8].map(b => b.toString(16).padStart(2, "0")).join("");
-const bytesOf = h => new Uint8Array(h.match(/../g).map(x => parseInt(x, 16)));
-const RELAYS = ["wss://relay.damus.io", "wss://nos.lol", "wss://relay.primal.net", "wss://relay.nostr.band"];
-
-let NT, sk, me, pool, subscription, contacts, msgs, seen, cur = null;
-
-function startApp() {
-  $("home").classList.remove("hidden");
-  NT = window.NostrTools;
-  contacts = store.get("w-contacts", {});
-  msgs = store.get("w-msgs", {});
-  seen = new Set(Object.values(msgs).flat().map(m => m.id));
-  renderList();
-  wireUi();
-  if (!NT) { setStatus("Library failed to load. Check your internet and reopen."); return; }
-
-  let skHex = store.get("w-sk", null);
-  if (!skHex) { skHex = hexOf(NT.generateSecretKey()); store.set("w-sk", skHex); }
-  sk = bytesOf(skHex);
-  me = NT.getPublicKey(sk);
-  $("full").textContent = me;
-
-  pool = new NT.SimplePool();
-  subscribe();
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) subscribe(); });
-
-  const m = location.hash.match(/add=([0-9a-f]{64})/i);
-  if (m) { $("pk").value = m[1]; setStatus("ID filled in. Tap Add."); }
+"use strict";
+const $=id=>document.getElementById(id);
+const RELAYS=["wss://relay.damus.io","wss://nos.lol","wss://relay.primal.net","wss://relay.nostr.band"];
+const KEY="whisper-v4";
+const db={read(){try{return JSON.parse(localStorage.getItem(KEY))||{}}catch{return{}}},write(){try{localStorage.setItem(KEY,JSON.stringify(data));return true}catch(e){toast("Storage is full or unavailable.");return false}}};
+let data=db.read(),NT=null,sk=null,me=null,npub=null,pool=null,sub=null,current=null,seen=new Set(),unread=data.unread||{},started=false,connecting=false;
+// One-time migration from the first Whisper prototype.
+if(!Object.keys(data.contacts||{}).length){try{data.contacts=JSON.parse(localStorage.getItem("w-contacts")||"{}")}catch{}}
+if(!Object.keys(data.messages||{}).length){try{data.messages=JSON.parse(localStorage.getItem("w-msgs")||"{}")}catch{}}
+data.contacts=data.contacts||{};data.messages=data.messages||{};data.unread=data.unread||{};
+data.contacts=data.contacts||{};data.messages=data.messages||{};data.unread=data.unread||{};
+const hex=b=>Array.from(b,x=>x.toString(16).padStart(2,"0")).join("");
+const unhex=h=>new Uint8Array(h.match(/.{2}/g).map(x=>parseInt(x,16)));
+function toast(t){$("toast").textContent=t;clearTimeout(toast.timer);toast.timer=setTimeout(()=>$("toast").textContent="",3500)}
+function status(t){$("status").textContent=t}
+function show(id){$(id).classList.remove("hidden")}function hide(id){$(id).classList.add("hidden")}
+function parsePub(raw){raw=raw.trim();let m=raw.match(/(?:add=|\/)([0-9a-f]{64})(?:$|[&#?])/i);if(m)return m[1].toLowerCase();if(/^npub1/i.test(raw)){try{let d=NT.nip19.decode(raw);return typeof d.data==="string"?d.data:null}catch{return null}}if(/^[0-9a-f]{64}$/i.test(raw))return raw.toLowerCase();return null}
+function parseSecret(raw){raw=raw.trim();if(/^nsec1/i.test(raw)){const d=NT.nip19.decode(raw);if(d.type!=="nsec")throw Error("That is not an nsec private key.");return d.data}if(/^[0-9a-f]{64}$/i.test(raw))return unhex(raw);throw Error("Enter a valid nsec or 64-character hexadecimal secret key.")}
+function save(){db.write()}
+function getMessages(pk){return data.messages[pk]||(data.messages[pk]=[])}
+function addContact(pk,name){if(!data.contacts[pk])data.contacts[pk]=name||("Friend "+pk.slice(0,6));save();renderList()}
+function setIdentity(secret){sk=secret;me=NT.getPublicKey(sk);npub=NT.nip19.npubEncode(me);localStorage.setItem("whisper-secret",hex(sk));$("npub").textContent=npub;hide("nsec");hide("copyNsec");$("revealKey").textContent="Show private key"}
+async function boot(){
+ if(started)return;started=true;
+ $("home").classList.remove("hidden");
+ NT=window.NostrTools;
+ if(!NT){status("Encryption library failed to load. Check your connection and reload.");$("add").disabled=$("send").disabled=true;return}
+ try{
+  const stored=localStorage.getItem("whisper-secret");
+  if(stored){sk=unhex(stored);if(sk.length!==32)throw Error("Invalid saved key");}
+  else sk=NT.generateSecretKey();
+  setIdentity(sk);
+ }catch(e){status("Could not load identity: "+e.message);return}
+ pool=new NT.SimplePool();
+ seen=new Set(Object.values(data.messages).flat().map(m=>m.id));
+ renderList();connect();
+ const invite=location.hash.match(/(?:add=)([^&]+)/);if(invite){$("pk").value=decodeURIComponent(invite[1]);status("Invite detected — tap Add to open the chat.");}
+ document.addEventListener("visibilitychange",()=>{if(!document.hidden)connect()});
 }
-
-function setStatus(t) { $("status").textContent = t; }
-
-function subscribe() {
-  try { if (subscription) subscription.close(); } catch (e) {}
-  setStatus("connecting…");
-  subscription = pool.subscribeMany(RELAYS, [
-    { kinds: [4], "#p": [me], limit: 300 },
-    { kinds: [4], authors: [me], limit: 300 }
-  ], { onevent: onEvent, oneose() { setStatus("connected"); } });
+function connect(){
+ if(!pool||connecting)return;connecting=true;
+ try{if(sub)sub.close()}catch{}
+ status("Connecting to relays…");
+ sub=pool.subscribeMany(RELAYS,[{kinds:[4],"#p":[me],limit:500},{kinds:[4],authors:[me],limit:500}],{
+  onevent:receive,
+  oneose(){status("Connected · listening on relays")}
+ });
+ setTimeout(()=>{connecting=false;if($("status").textContent==="Connecting to relays…")status("Trying relays…")},2500);
 }
-
-/* ---------- receiving ---------- */
-async function onEvent(ev) {
-  if (seen.has(ev.id)) return;
-  const p = ev.tags.find(t => t[0] === "p");
-  if (!p) return;
-  let other;
-  if (ev.pubkey === me) other = p[1];
-  else if (p[1] === me) other = ev.pubkey;
-  else return;
-  if (!/^[0-9a-f]{64}$/.test(other)) return;
-  let text;
-  try { text = await NT.nip04.decrypt(sk, other, ev.content); } catch (e) { return; }
-  if (!contacts[other]) { contacts[other] = "Friend " + other.slice(0, 6); store.set("w-contacts", contacts); }
-  push(other, { id: ev.id, me: ev.pubkey === me, text, t: ev.created_at, st: "ok" });
+async function receive(ev){
+ if(!ev||seen.has(ev.id)||!NT)return;
+ const tag=(ev.tags||[]).find(t=>t[0]==="p");if(!tag||!tag[1])return;
+ let peer;if(ev.pubkey===me)peer=tag[1];else if(tag[1]===me)peer=ev.pubkey;else return;
+ if(!/^[0-9a-f]{64}$/.test(peer)||peer===me)return;
+ try{
+  const message=await NT.nip04.decrypt(sk,peer,ev.content);
+  if(typeof message!=="string")return;
+  seen.add(ev.id);addContact(peer);
+  insertMessage(peer,{id:ev.id,me:ev.pubkey===me,text:message,t:ev.created_at,st:"ok"});
+  if(peer!==current&&ev.pubkey!==me){data.unread[peer]=(data.unread[peer]||0)+1;save();renderList()}
+ }catch(e){/* Ignore events not decryptable by this identity. */}
 }
-
-function push(pk, m) {
-  const list = msgs[pk] || (msgs[pk] = []);
-  const old = list.find(x => x.id === m.id);
-  if (old) old.st = m.st; else { list.push(m); list.sort((a, b) => a.t - b.t); }
-  seen.add(m.id);
-  store.set("w-msgs", msgs);
-  renderList();
-  if (cur === pk) renderThread();
+function insertMessage(pk,m){
+ const a=getMessages(pk),i=a.findIndex(x=>x.id===m.id);
+ if(i>=0)a[i]={...a[i],...m};else a.push(m);
+ a.sort((x,y)=>x.t-y.t);save();renderList();if(current===pk)renderThread();
 }
-
-/* ---------- sending ---------- */
-async function sendMsg() {
-  const text = $("txt").value.trim();
-  if (!text || !cur) return;
-  $("txt").value = "";
-  const to = cur;
-  try {
-    const content = await NT.nip04.encrypt(sk, to, text);
-    const ev = NT.finalizeEvent({ kind: 4, created_at: Math.floor(Date.now() / 1000), tags: [["p", to]], content }, sk);
-    push(to, { id: ev.id, me: true, text, t: ev.created_at, st: "sending" });
-    try { await Promise.any(pool.publish(RELAYS, ev)); push(to, { id: ev.id, me: true, text, t: ev.created_at, st: "ok" }); }
-    catch (e) { push(to, { id: ev.id, me: true, text, t: ev.created_at, st: "failed" }); }
-  } catch (e) { setStatus("Could not encrypt: " + e.message); }
+async function sendMessage(retryId=null){
+ const input=$("txt"),text=retryId?getMessages(current).find(x=>x.id===retryId)?.text:input.value.trim();
+ if(!text||!current||!NT||!pool)return;
+ const peer=current;if(!retryId)input.value="";
+ const localId=retryId||("local-"+Date.now()+"-"+Math.random().toString(36).slice(2));
+ if(!retryId)insertMessage(peer,{id:localId,me:true,text,t:Math.floor(Date.now()/1000),st:"sending"});
+ else{const old=getMessages(peer).find(x=>x.id===retryId);if(old)old.st="sending";save();renderThread()}
+ $("send").disabled=true;
+ try{
+  const content=await NT.nip04.encrypt(sk,peer,text);
+  const ev=NT.finalizeEvent({kind:4,created_at:Math.floor(Date.now()/1000),tags:[["p",peer]],content},sk);
+  if(retryId){const a=getMessages(peer),i=a.findIndex(x=>x.id===retryId);if(i>=0)a.splice(i,1)}
+  insertMessage(peer,{id:ev.id,me:true,text,t:ev.created_at,st:"sending"});
+  const results=await Promise.allSettled(pool.publish(RELAYS,ev));
+  const ok=results.some(r=>r.status==="fulfilled");
+  insertMessage(peer,{id:ev.id,me:true,text,t:ev.created_at,st:ok?"ok":"failed"});
+  if(!ok)status("Message not acknowledged. Check connection and retry.");
+ }catch(e){const m=getMessages(peer).find(x=>x.id===localId);if(m){m.st="failed";save();renderThread()}status("Could not send: "+(e.message||"unknown error"))}
+ finally{$("send").disabled=false;input.focus()}
 }
-
-/* ---------- contacts ---------- */
-function parseId(raw) {
-  raw = raw.trim();
-  const link = raw.match(/add=([0-9a-f]{64})/i);
-  if (link) return link[1].toLowerCase();
-  if (/^npub1/i.test(raw)) { try { return NT.nip19.decode(raw.toLowerCase()).data; } catch (e) { return null; } }
-  return /^[0-9a-f]{64}$/i.test(raw) ? raw.toLowerCase() : null;
+function fmt(t){const d=new Date(t*1000),today=new Date();return d.toDateString()===today.toDateString()?d.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):d.toLocaleDateString([],{day:"numeric",month:"short"})}
+function initials(n){return (n||"?").trim().split(/\s+/).slice(0,2).map(x=>x[0]).join("").toUpperCase()}
+function renderList(){
+ const box=$("list");box.textContent="";const q=$("search").value.toLowerCase().trim();
+ const ids=Object.keys(data.contacts).filter(pk=>(data.contacts[pk]+" "+pk).toLowerCase().includes(q)).sort((a,b)=>(getMessages(b).at(-1)?.t||0)-(getMessages(a).at(-1)?.t||0));
+ if(!ids.length){const d=document.createElement("div");d.className="empty";d.innerHTML="<strong>"+(q?"No matches":"Your chats start here")+"</strong>"+(q?"Try another search.":"Add someone using their public ID, or share your ID using the button above.");box.append(d);return}
+ ids.forEach(pk=>{const a=getMessages(pk),last=a.at(-1),row=document.createElement("div");row.className="ct";
+ const av=document.createElement("div");av.className="avatar";av.textContent=initials(data.contacts[pk]);
+ const main=document.createElement("div");main.className="ctmain";const n=document.createElement("div");n.className="n";n.textContent=data.contacts[pk];const p=document.createElement("div");p.className="p";p.textContent=last?(last.me?"You: ":"")+last.text:"No messages yet";main.append(n,p);
+ const meta=document.createElement("div");meta.className="ctmeta";if(last){const tm=document.createElement("div");tm.textContent=fmt(last.t);meta.append(tm)}if(data.unread[pk]){const badge=document.createElement("span");badge.className="badge";badge.textContent=data.unread[pk]>99?"99+":data.unread[pk];meta.append(badge)}
+ row.append(av,main,meta);row.onclick=()=>openThread(pk);box.append(row)});
 }
-function addContact() {
-  if (!NT) { alert("Library not loaded yet. Check your internet."); return; }
-  const raw = $("pk").value;
-  const pk = parseId(raw);
-  if (!pk) { alert("That doesn’t look like a valid ID. It should be 64 letters and numbers (a–f, 0–9). Copy it again from your friend’s “My ID” screen."); return; }
-  if (pk === me) { alert("That’s your own ID. Paste your friend’s ID instead."); return; }
-  if (!contacts[pk]) { contacts[pk] = "Friend " + pk.slice(0, 6); store.set("w-contacts", contacts); }
-  $("pk").value = "";
-  history.replaceState(null, "", location.pathname + location.search);
-  renderList();
-  openThread(pk);
+function openThread(pk){current=pk;data.unread[pk]=0;save();$("title").textContent=data.contacts[pk];$("peer").textContent=pk.slice(0,12)+"…";hide("home");show("thread");renderThread();$("txt").focus()}
+function renderThread(){
+ const box=$("msgs");box.textContent="";const list=getMessages(current);let lastDay="";
+ if(!list.length){const d=document.createElement("div");d.className="empty";d.innerHTML="<strong>Start a conversation</strong>Messages are encrypted on this device before being sent to relays.";box.append(d)}
+ for(const m of list){
+  const day=new Date(m.t*1000).toDateString();if(day!==lastDay){const sep=document.createElement("div");sep.className="day";sep.textContent=new Date(m.t*1000).toLocaleDateString([],{weekday:"short",day:"numeric",month:"short",year:"numeric"});box.append(sep);lastDay=day}
+  const d=document.createElement("div");d.className="m"+(m.me?" me":"");d.textContent=m.text;
+  const meta=document.createElement("small");meta.textContent=fmt(m.t)+(m.me?(m.st==="ok"?" · sent":m.st==="failed"?" · not sent":" · sending…"):"");d.append(meta);
+  if(m.me&&m.st==="failed"){const b=document.createElement("button");b.className="retry";b.textContent="Retry";b.onclick=()=>sendMessage(m.id);meta.append(b)}
+  box.append(d);
+ }
+ $("sc").scrollTop=$("sc").scrollHeight;
 }
-
-/* ---------- UI ---------- */
-function fmt(t) { const d = new Date(t * 1000); return d.toDateString() === new Date().toDateString() ? d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : d.toLocaleDateString([], { day: "numeric", month: "short" }); }
-function renderList() {
-  const box = $("list"); box.textContent = "";
-  const ids = Object.keys(contacts).sort((a, b) => ((msgs[b] || []).slice(-1)[0]?.t || 0) - ((msgs[a] || []).slice(-1)[0]?.t || 0));
-  if (!ids.length) { const d = document.createElement("div"); d.className = "empty"; d.innerHTML = "No chats yet.<br>Paste a friend’s ID below and tap Add."; box.append(d); return; }
-  for (const pk of ids) {
-    const last = (msgs[pk] || []).slice(-1)[0];
-    const row = document.createElement("div"); row.className = "ct";
-    const l = document.createElement("div");
-    const n = document.createElement("div"); n.className = "n"; n.textContent = contacts[pk];
-    const p = document.createElement("div"); p.className = "p"; p.textContent = last ? (last.me ? "You: " : "") + last.text : "No messages yet";
-    l.append(n, p);
-    const t = document.createElement("div"); t.className = "t"; t.textContent = last ? fmt(last.t) : "";
-    row.append(l, t); row.onclick = () => openThread(pk); box.append(row);
-  }
+function back(){current=null;hide("thread");show("home");renderList()}
+function rename(){const old=data.contacts[current],n=prompt("Contact name",old);if(n===null)return;if(!n.trim()){alert("Name cannot be empty.");return}data.contacts[current]=n.trim().slice(0,50);save();$("title").textContent=data.contacts[current];renderList()}
+function contactOptions(){const choice=prompt("Contact options:\\n1 — Rename\\n2 — Copy public ID\\n3 — Remove contact\\n\\nEnter 1, 2 or 3");if(choice==="1")rename();if(choice==="2")copyText(NT.nip19.npubEncode(current));if(choice==="3"&&confirm("Remove this contact and its chat history from this device? This cannot be undone.")){delete data.contacts[current];delete data.messages[current];delete data.unread[current];save();back()}}
+async function copyText(t){try{await navigator.clipboard.writeText(t);toast("Copied to clipboard")}catch{toast("Clipboard unavailable — select and copy the text.")}}
+function inviteLink(){return location.origin+location.pathname+"#add="+encodeURIComponent(npub)}
+function wire(){
+ $("openApp").onclick=boot;$("add").onclick=()=>{const pk=parsePub($("pk").value);if(!pk){alert("Enter a valid npub, 64-character public key, or Whisper invite link.");return}if(pk===me){alert("That is your own public ID.");return}addContact(pk);$("pk").value="";history.replaceState(null,"",location.pathname+location.search);openThread(pk)};
+ $("pk").onkeydown=e=>{if(e.key==="Enter")$("add").click()};$("send").onclick=()=>sendMessage();$("txt").onkeydown=e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendMessage()}};
+ $("search").oninput=renderList;$("back").onclick=back;$("chatMenu").onclick=contactOptions;
+ $("me").onclick=()=>{show("sheet");$("npub").textContent=npub};$("close").onclick=()=>hide("sheet");$("sheet").onclick=e=>{if(e.target.id==="sheet")hide("sheet")};
+ $("copyNpub").onclick=()=>copyText(npub);$("share").onclick=async()=>{const url=inviteLink();try{if(navigator.share)await navigator.share({title:"Chat with me on Whisper",text:"Add me on Whisper using this invite:",url});else await copyText(url)}catch{}};
+ $("revealKey").onclick=()=>{if(!$("nsec").classList.contains("hidden")){hide("nsec");hide("copyNsec");$("revealKey").textContent="Show private key";return}const secret=NT.nip19.nsecEncode(sk);$("nsec").textContent=secret;show("nsec");show("copyNsec");$("revealKey").textContent="Hide private key"};
+ $("copyNsec").onclick=()=>copyText($("nsec").textContent);
+ $("downloadBackup").onclick=()=>{const blob=new Blob([JSON.stringify({app:"Whisper Chat",format:1,secretKey:NT.nip19.nsecEncode(sk),publicKey:npub,createdAt:new Date().toISOString()},null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="whisper-identity-backup.json";a.click();URL.revokeObjectURL(a.href);toast("Backup downloaded. Store it somewhere private.")};
+ $("restore").onclick=()=>{try{if(!confirm("Replace the current identity on this device? Make sure you have backed up your current key."))return;const secret=parseSecret($("restoreKey").value);setIdentity(secret);$("restoreKey").value="";connect();toast("Identity restored.")}catch(e){alert(e.message)}};
 }
-function openThread(pk) { cur = pk; $("home").classList.add("hidden"); $("thread").classList.remove("hidden"); $("title").textContent = contacts[pk]; renderThread(); }
-function renderThread() {
-  const box = $("msgs"); box.textContent = "";
-  const list = msgs[cur] || [];
-  if (!list.length) { const d = document.createElement("div"); d.className = "empty"; d.textContent = "Say hello. Messages are encrypted before they leave this phone."; box.append(d); }
-  for (const m of list) {
-    const d = document.createElement("div"); d.className = "m" + (m.me ? " me" : ""); d.textContent = m.text;
-    if (m.me && m.st !== "ok") { const s = document.createElement("small"); s.textContent = m.st === "failed" ? "not sent" : "sending…"; d.append(s); }
-    box.append(d);
-  }
-  $("sc").scrollTop = $("sc").scrollHeight;
-}
-function wireUi() {
-  $("add").onclick = addContact;
-  $("pk").onkeydown = e => { if (e.key === "Enter") addContact(); };
-  $("send").onclick = sendMsg;
-  $("txt").onkeydown = e => { if (e.key === "Enter") sendMsg(); };
-  $("back").onclick = () => { cur = null; $("thread").classList.add("hidden"); $("home").classList.remove("hidden"); renderList(); };
-  $("title").onclick = () => { const n = prompt("Name for this contact:", contacts[cur]); if (n && n.trim()) { contacts[cur] = n.trim().slice(0, 30); store.set("w-contacts", contacts); $("title").textContent = contacts[cur]; } };
-  $("me").onclick = () => $("sheet").classList.remove("hidden");
-  $("close").onclick = () => $("sheet").classList.add("hidden");
-  $("sheet").onclick = e => { if (e.target.id === "sheet") $("sheet").classList.add("hidden"); };
-  const toast = t => { $("toast").textContent = t; setTimeout(() => $("toast").textContent = "", 2000); };
-  $("copy").onclick = async () => {
-    try { await navigator.clipboard.writeText(me); toast("ID copied"); }
-    catch (e) { const r = document.createRange(); r.selectNodeContents($("full")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); toast("Selected. Press and hold to copy."); }
-  };
-  $("share").onclick = async () => {
-    const link = location.origin + location.pathname + "#add=" + me;
-    try { if (navigator.share) await navigator.share({ title: "Chat with me on Whisper", url: link }); else { await navigator.clipboard.writeText(link); toast("Link copied"); } } catch (e) {}
-  };
-}
+wire();
+if("serviceWorker"in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
+const standalone=matchMedia("(display-mode:standalone)").matches||navigator.standalone===true;
+if(standalone||new URLSearchParams(location.search).has("app"))boot();else show("landing");
 </script>
-</body>
-</html>
+</body></html>
