@@ -27,7 +27,16 @@ button{font:inherit;border:0;border-radius:12px;padding:12px 22px;background:var
 #app{height:100%;display:flex;flex-direction:column}
 header{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
 header b{font-size:18px}
-#me{font:12px ui-monospace,Menlo,monospace;color:var(--mut)}
+#me{font:12px ui-monospace,Menlo,monospace;color:var(--ink);background:var(--card);border:1px solid var(--line);padding:7px 12px;border-radius:99px;font-weight:400}
+#sheet{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center;z-index:5}
+#sheet .box{background:var(--card);width:100%;max-width:520px;border-radius:20px 20px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:12px}
+#sheet h2{margin:0;font-size:18px}
+.full{font:14px/1.5 ui-monospace,Menlo,monospace;word-break:break-all;user-select:all;-webkit-user-select:all;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px}
+.short{color:var(--mut);font-size:14px}
+.short b{color:var(--ink);font:16px ui-monospace,Menlo,monospace;letter-spacing:1px}
+.two{display:flex;gap:8px}.two button{flex:1}
+.alt{background:var(--bg);color:var(--ink);border:1px solid var(--line)}
+#toast{font-size:13px;color:var(--acc);min-height:18px}
 #list{flex:1;overflow-y:auto;padding:16px}
 .empty{color:var(--mut);text-align:center;margin-top:40px}
 .bar{padding:12px;border-top:1px solid var(--line);display:flex;gap:8px}
@@ -46,10 +55,19 @@ input{flex:1;min-width:0;background:var(--card);color:var(--ink);border:1px soli
 </section>
 
 <section id="app" class="hidden">
-  <header><b>Whisper</b><span id="me"></span></header>
+  <header><b>Whisper</b><button id="me" type="button">My ID</button></header>
   <div id="list"><div class="empty">No chats yet.<br>Add a contact with their public key.</div></div>
   <div class="bar"><input id="pk" placeholder="Paste a contact’s public key…"><button id="add" type="button">Add</button></div>
 </section>
+
+<div id="sheet" class="hidden"><div class="box">
+  <h2>Your ID</h2>
+  <div class="full" id="full"></div>
+  <div class="short">Short code (to check by voice): <b id="short"></b></div>
+  <div class="two"><button id="copy" type="button">Copy ID</button><button id="share" class="alt" type="button">Share link</button></div>
+  <div id="toast"></div>
+  <button class="alt" id="close" type="button">Close</button>
+</div></div>
 
 <script>
 const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
@@ -72,11 +90,29 @@ if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catc
 
 // Chat shell: identity placeholder (real keys + Nostr come in the next step)
 async function startApp() {
+  let id = "";
   try {
-    let id = localStorage.getItem("whisper-id");
-    if (!id) { id = [...crypto.getRandomValues(new Uint8Array(16))].map(b => b.toString(16).padStart(2, "0")).join(""); localStorage.setItem("whisper-id", id); }
-    $("me").textContent = "ID " + id.slice(0, 8) + "…";
-  } catch (e) { $("me").textContent = "ID unavailable"; }
+    id = localStorage.getItem("whisper-id") || "";
+    if (!id) { id = [...crypto.getRandomValues(new Uint8Array(32))].map(b => b.toString(16).padStart(2, "0")).join(""); localStorage.setItem("whisper-id", id); }
+  } catch (e) { id = "unavailable"; }
+  $("me").textContent = "My ID · tap";
+  $("full").textContent = id;
+  $("short").textContent = id.slice(0, 16).toUpperCase().match(/.{1,4}/g).join("-");
+  const link = location.origin + location.pathname + "#add=" + id;
+  const toast = t => { $("toast").textContent = t; setTimeout(() => $("toast").textContent = "", 2000); };
+  $("me").onclick = () => $("sheet").classList.remove("hidden");
+  $("close").onclick = () => $("sheet").classList.add("hidden");
+  $("sheet").onclick = e => { if (e.target.id === "sheet") $("sheet").classList.add("hidden"); };
+  $("copy").onclick = async () => {
+    try { await navigator.clipboard.writeText(id); toast("ID copied"); }
+    catch (e) { const r = document.createRange(); r.selectNodeContents($("full")); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); toast("Selected: press Copy"); }
+  };
+  $("share").onclick = async () => {
+    try { if (navigator.share) await navigator.share({ title: "Chat with me on Whisper", url: link }); else { await navigator.clipboard.writeText(link); toast("Link copied"); } }
+    catch (e) {}
+  };
+  const m = location.hash.match(/add=([0-9a-f]+)/i);
+  if (m) $("pk").value = m[1];
 }
 </script>
 </body>
