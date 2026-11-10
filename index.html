@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#14201c">
+<meta name="theme-color" content="#1E1B2E">
 <meta name="description" content="RUSTLE — Private encrypted messaging on Nostr.">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" href="./icon-192.png">
@@ -15,14 +15,16 @@
 <style>
 :root{
 color-scheme:dark;
---bg:#0f1815;
---panel:#17251f;
---panel2:#1f3229;
---ink:#eef6f1;
---mut:#8fa89b;
---line:#233a30;
---acc:#45d6a1;
---sent:#17785a;
+--bg:#1E1B2E;
+--panel:#2A2639;
+--panel2:#343049;
+--ink:#F4F1FA;
+--mut:#A6A1B3;
+--faint:#6B6B7A;
+--line:#3A3552;
+--pri:#6750A4;
+--acc:#8B6FD3;
+--sent:#6750A4;
 --danger:#ff8585;
 --tap:#ffffff0d
 }
@@ -37,18 +39,18 @@ padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)
 button,input,textarea{font:inherit}
 button{
 border:0;
-border-radius:12px;
-padding:11px 15px;
-background:var(--acc);
-color:#06251a;
-font-weight:700;
+border-radius:14px;
+padding:12px 18px;
+background:var(--pri);
+color:#fff;
+font-weight:650;
 cursor:pointer;
-transition:transform .08s,opacity .15s
+transition:transform .08s,opacity .15s,background .15s
 }
 button:active{transform:scale(.97)}
 button:disabled{opacity:.5;cursor:not-allowed}
 button:focus-visible,.row:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
-.alt{background:var(--panel2);color:var(--ink);border:1px solid var(--line)}
+.alt{background:transparent;color:var(--acc);border:1.5px solid var(--pri)}
 .quiet{background:transparent;color:var(--mut);padding:8px 10px}
 .hidden{display:none!important}
 input,textarea{
@@ -62,72 +64,81 @@ padding:12px;
 font-size:16px;
 outline:none
 }
+input::placeholder,textarea::placeholder{color:#8a869a}
 input:focus,textarea:focus{border-color:var(--acc)}
 
 /* landing */
 #landing{
+position:relative;
 min-height:100%;
 display:flex;
 flex-direction:column;
 align-items:center;
 justify-content:center;
 text-align:center;
-padding:24px;
-gap:14px
+padding:24px 24px 120px;
+gap:14px;
+overflow:hidden
 }
-#landing img{width:96px;height:96px;border-radius:24px}
-#landing h1{margin:0;font-size:32px;letter-spacing:.01em}
-#landing p{margin:0;color:var(--mut);max-width:380px}
-#landing button{padding:13px 26px;font-size:16px;border-radius:99px}
+#landing .leaf{width:104px;height:104px}
+#landing h1{margin:4px 0 0;font-size:34px;letter-spacing:.02em}
+#landing p{margin:0;color:var(--mut);max-width:340px;font-size:16px}
+#landing button{padding:14px 30px;font-size:16px;margin-top:10px}
+#landing .lock{
+display:flex;align-items:center;gap:8px;
+color:var(--mut);font-size:12px;text-align:left;margin-top:18px
+}
+#landing .wave{position:absolute;left:0;right:0;bottom:0;width:100%;height:150px;pointer-events:none}
 
 /* screens */
-.screen{height:100dvh;min-height:0;display:flex;flex-direction:column}
+.screen{height:100dvh;min-height:0;display:flex;flex-direction:column;position:relative}
 .top{
-padding:10px 14px;
+padding:12px 16px 10px;
 display:flex;
 align-items:center;
 gap:12px;
-min-height:60px;
+min-height:62px;
 background:var(--bg)
 }
-.brand{font-size:22px;font-weight:800;letter-spacing:.01em;line-height:1.1}
+.brand{font-size:24px;font-weight:800;letter-spacing:.02em;line-height:1.1}
 .brandcol{flex:1;min-width:0}
-.statusrow{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--mut)}
-.statusrow .dot{width:7px;height:7px;border-radius:50%;background:#6b7f74;flex:none}
+.statusrow{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--mut);margin-top:2px}
+.statusrow .dot{width:8px;height:8px;border-radius:50%;background:var(--faint);flex:none}
 .statusrow.ok .dot{background:var(--acc)}
+.statusrow.ok #status{color:var(--acc)}
 #status{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 .avatar{
-width:48px;
-height:48px;
+width:50px;
+height:50px;
 flex:none;
 border-radius:50%;
 display:grid;
 place-items:center;
 color:#fff;
-font-weight:800;
+font-weight:700;
 font-size:17px;
 padding:0;
 text-shadow:0 1px 2px #0004
 }
-.avatar.sm{width:40px;height:40px;font-size:15px}
-.avatar.lg{width:88px;height:88px;font-size:32px}
+.avatar.sm{width:42px;height:42px;font-size:16px}
+.avatar.lg{width:92px;height:92px;font-size:32px}
 button.avatar{border:2px solid var(--line)}
 
-.searchwrap{padding:2px 14px 10px;background:var(--bg)}
+.searchwrap{padding:2px 16px 10px;background:var(--bg)}
 .searchbox{
 display:flex;
 align-items:center;
 gap:8px;
 background:var(--panel);
-border:1px solid var(--line);
-border-radius:14px;
-padding:0 6px 0 13px;
+border:1px solid transparent;
+border-radius:16px;
+padding:0 8px 0 14px;
 transition:border-color .15s
 }
 .searchbox:focus-within{border-color:var(--acc)}
 .searchbox svg{flex:none;color:var(--mut)}
-.searchbox input{border:0;background:transparent;padding:12px 4px;border-radius:0}
+.searchbox input{border:0;background:transparent;padding:13px 4px;border-radius:0}
 .clear{
 width:30px;height:30px;padding:0;
 border-radius:50%;
@@ -141,29 +152,34 @@ flex:none
 flex:1;
 min-height:0;
 overflow:auto;
-padding:0 14px 14px;
+padding:0 16px 90px;
 overscroll-behavior:contain
 }
+#sc{padding-bottom:14px}
 .notice{
 display:flex;
-align-items:flex-start;
-gap:8px;
-padding:9px 6px 9px 12px;
+align-items:center;
+gap:10px;
+padding:10px 6px 10px 12px;
 background:var(--panel);
-border-radius:12px;
+border-radius:16px;
 color:var(--mut);
 font-size:12px;
-margin:0 0 6px
+margin:0 0 8px
 }
-.notice span{flex:1;padding-top:5px}
+.notice .ico{
+width:36px;height:36px;border-radius:12px;background:var(--pri);
+display:grid;place-items:center;flex:none;color:#fff
+}
+.notice span{flex:1}
 
 /* rows */
 .row{
 display:flex;
 align-items:center;
 gap:12px;
-padding:10px 6px;
-border-radius:14px;
+padding:11px 6px;
+border-radius:16px;
 cursor:pointer
 }
 .row:active{background:var(--tap)}
@@ -176,72 +192,130 @@ white-space:nowrap;
 overflow:hidden;
 text-overflow:ellipsis
 }
-.row.unread .n,.row.unread .p{color:var(--ink)}
-.row.unread .p{font-weight:600}
+.row.unread .p{color:var(--ink);font-weight:600}
 .ctmeta{
-font-size:11px;
+font-size:12px;
 color:var(--mut);
 text-align:right;
 white-space:nowrap;
 display:flex;
 flex-direction:column;
 align-items:flex-end;
-gap:5px
+gap:6px
 }
+.row.unread .ctmeta{color:var(--acc)}
 .badge{
 display:inline-grid;
 place-items:center;
-min-width:19px;
-height:19px;
-padding:0 5px;
+min-width:20px;
+height:20px;
+padding:0 6px;
 border-radius:20px;
 background:var(--acc);
-color:#06251a;
+color:var(--bg);
 font-size:11px;
 font-weight:800
 }
 .pill{padding:8px 16px;border-radius:99px;font-size:13px;flex:none}
-.group{font-size:13px;font-weight:700;color:var(--mut);padding:14px 6px 4px}
+.group{font-size:17px;font-weight:700;color:var(--ink);padding:16px 6px 4px}
 .hintrow{color:var(--mut);font-size:13px;padding:10px 6px}
-.skel{display:flex;align-items:center;gap:12px;padding:10px 6px}
+.skel{display:flex;align-items:center;gap:12px;padding:11px 6px}
 .skel i{display:block;background:var(--panel);border-radius:99px;animation:pulse 1.2s ease-in-out infinite}
-.skel .a{width:48px;height:48px}
+.skel .a{width:50px;height:50px}
 .skel .b{height:12px;width:55%;border-radius:6px;margin-bottom:8px}
 .skel .c{height:10px;width:35%;border-radius:6px}
 @keyframes pulse{50%{opacity:.45}}
 @media(prefers-reduced-motion:reduce){.skel i{animation:none}button{transition:none}}
 
-.empty{text-align:center;color:var(--mut);margin:60px auto 0;max-width:300px;display:flex;flex-direction:column;align-items:center;gap:8px}
-.empty .ring{width:76px;height:76px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;color:var(--acc);margin-bottom:6px}
-.empty strong{color:var(--ink);font-size:18px}
-.empty .two{width:100%;margin-top:10px}
+.state{
+text-align:center;
+color:var(--mut);
+margin:56px auto 0;
+max-width:300px;
+display:flex;
+flex-direction:column;
+align-items:center;
+gap:8px
+}
+.state .ic{color:var(--acc);margin-bottom:8px}
+.state strong{color:var(--ink);font-size:19px}
+.state button{width:100%;margin-top:12px}
+.state .alt{margin-top:2px}
+
+.fab{
+position:absolute;
+right:18px;
+bottom:84px;
+width:56px;height:56px;
+padding:0;
+border-radius:50%;
+display:grid;place-items:center;
+box-shadow:0 8px 20px #0007;
+z-index:2
+}
+
+.tabs{
+display:flex;
+background:var(--panel);
+border-top:1px solid var(--line);
+padding:6px 8px calc(6px + env(safe-area-inset-bottom))
+}
+.tab{
+flex:1;
+background:transparent;
+color:var(--faint);
+display:flex;
+flex-direction:column;
+align-items:center;
+gap:2px;
+font-size:11px;
+font-weight:600;
+padding:6px 0;
+border-radius:12px
+}
+.tab.active{color:var(--acc)}
 
 /* thread */
 .back{background:transparent;color:var(--ink);padding:6px 4px;display:grid;place-items:center;flex:none}
 .threadhead{flex:1;min-width:0;line-height:1.25}
-.threadhead b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.threadhead b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:17px}
 .threadhead small{color:var(--mut);font-size:12px}
 #thread .top{border-bottom:1px solid var(--line);gap:10px}
 #msgs{display:flex;flex-direction:column;gap:3px;padding-top:8px}
-.day{align-self:center;color:var(--mut);font-size:11px;margin:14px 0 6px}
+.day{
+align-self:center;
+color:var(--mut);
+font-size:11px;
+margin:14px 0 8px;
+background:var(--panel);
+padding:4px 12px;
+border-radius:99px
+}
 .m{
 max-width:min(80%,520px);
-padding:8px 12px;
+padding:9px 13px;
 border-radius:18px 18px 18px 5px;
-background:var(--panel2);
+background:var(--panel);
 white-space:pre-wrap;
 overflow-wrap:anywhere;
 align-self:flex-start;
 margin-top:4px
 }
 .m.me{align-self:flex-end;background:var(--sent);border-radius:18px 18px 5px 18px}
-.m small{display:block;font-size:10px;opacity:.7;text-align:right;margin-top:2px}
-.m .retry{font-size:11px;text-decoration:underline;color:#ffe1a8;background:none;padding:2px 0;margin-left:8px}
+.m small{display:block;font-size:10px;opacity:.75;text-align:right;margin-top:2px}
+.m .retry{
+font-size:11px;
+background:#ffffff26;
+color:#fff;
+border-radius:99px;
+padding:2px 10px;
+margin-left:8px
+}
 .intro{display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;margin:36px auto 0;max-width:300px}
-.introname{font-size:20px;font-weight:800;margin-top:8px}
+.introname{font-size:21px;font-weight:800;margin-top:8px}
 .bio{color:var(--ink);font-size:14px;margin-top:6px;overflow-wrap:anywhere}
 .intro .hint{margin-top:10px}
-.chip{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:99px;margin-top:12px;padding:9px 18px}
+.chip{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:99px;margin-top:12px;padding:9px 18px}
 
 .bar{
 padding:10px 12px calc(10px + env(safe-area-inset-bottom));
@@ -251,9 +325,10 @@ align-items:center;
 gap:8px;
 background:var(--bg)
 }
-.bar input{flex:1;border-radius:99px;padding:12px 16px}
+.bar input{flex:1;border-radius:99px;padding:13px 18px;background:var(--panel);border-color:transparent}
+.bar input:focus{border-color:var(--acc)}
 #send{
-width:44px;height:44px;padding:0;border-radius:50%;
+width:46px;height:46px;padding:0;border-radius:50%;
 display:grid;place-items:center;flex:none
 }
 
@@ -268,24 +343,25 @@ justify-content:center;
 z-index:5
 }
 #sheet .box{
-background:var(--panel);
+background:var(--bg);
 width:100%;
 max-width:560px;
-max-height:90dvh;
+max-height:92dvh;
 overflow:auto;
-border-radius:22px 22px 0 0;
-padding:20px 18px calc(22px + env(safe-area-inset-bottom));
+border-radius:24px 24px 0 0;
+padding:18px 18px calc(22px + env(safe-area-inset-bottom));
 display:flex;
 flex-direction:column;
 gap:12px;
 border:1px solid var(--line)
 }
+.mehead{display:flex;flex-direction:column;align-items:center;text-align:center;gap:2px;padding-bottom:4px}
 .box h2{margin:0;font-size:19px}
 .full{
 font:12px/1.5 ui-monospace,monospace;
 overflow-wrap:anywhere;
 user-select:all;
-background:var(--bg);
+background:var(--panel);
 border:1px solid var(--line);
 border-radius:12px;
 padding:12px
@@ -293,16 +369,18 @@ padding:12px
 .two{display:flex;gap:8px}
 .two>*{flex:1}
 .hint{font-size:12px;color:var(--mut)}
-.section{border-top:1px solid var(--line);padding-top:12px;display:grid;gap:8px}
-.section h3{font-size:14px;margin:0}
+.section{background:var(--panel);border-radius:18px;padding:14px;display:grid;gap:8px}
+.section h3{font-size:15px;margin:0}
+.section input,.section textarea,.section .full{background:var(--bg)}
 .toast{color:var(--acc);font-size:12px;min-height:18px}
-.success{color:var(--acc)}
+.success{color:#7fe0a8}
 .error{color:var(--danger)}
 .username-label{font-size:12px;color:var(--mut)}
 
 @media(min-width:700px){
-body{background:#0a110e}
+body{background:#16132a}
 #home,#thread{max-width:760px;width:100%;margin:auto;border-left:1px solid var(--line);border-right:1px solid var(--line);background:var(--bg)}
+.fab{right:calc(50% - 360px)}
 }
 </style>
 </head>
@@ -310,11 +388,13 @@ body{background:#0a110e}
 <body>
 
 <section id="landing" class="hidden">
-<img src="./icon-192.png" alt="RUSTLE">
+<svg class="wave" viewBox="0 0 400 150" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="wg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6750A4" stop-opacity=".55"/><stop offset="1" stop-color="#2A2639" stop-opacity=".2"/></linearGradient></defs><path d="M0 70 C 70 20, 130 120, 210 80 C 290 40, 340 40, 400 70 L400 150 L0 150Z" fill="url(#wg)"/><path d="M0 100 C 80 60, 150 130, 230 100 C 300 72, 350 80, 400 100 L400 150 L0 150Z" fill="#6750A4" fill-opacity=".25"/></svg>
+<svg class="leaf" viewBox="0 0 110 110" aria-hidden="true"><defs><linearGradient id="lg1" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#6750A4"/><stop offset="1" stop-color="#A78BEA"/></linearGradient></defs><path d="M10 100 C 8 56, 40 14, 100 8 C 104 64, 66 104, 10 100 Z" fill="url(#lg1)"/><path d="M14 96 C 36 74, 60 50, 88 24" fill="none" stroke="#1E1B2E" stroke-opacity=".55" stroke-width="5" stroke-linecap="round"/><path d="M16 94 L 4 108" fill="none" stroke="#6750A4" stroke-width="7" stroke-linecap="round"/></svg>
 <h1>RUSTLE</h1>
-<p>Private, end-to-end encrypted messaging powered by Nostr.</p>
-<button id="openApp">Open RUSTLE</button>
-<p class="hint">Your private key stays on this device.</p>
+<p>Your conversations.<br>Your keys.</p>
+<p style="font-size:14px">Private, end-to-end encrypted messaging powered by Nostr.</p>
+<button id="openApp">Open RUSTLE →</button>
+<div class="lock"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span>Your private key stays on this device.</span></div>
 </section>
 
 <section id="home" class="screen hidden">
@@ -323,7 +403,7 @@ body{background:#0a110e}
 <div class="brand">RUSTLE</div>
 <div class="statusrow"><i class="dot"></i><span id="status">Starting…</span></div>
 </div>
-<button id="me" class="avatar" aria-label="My profile"></button>
+<button id="me" class="avatar sm" aria-label="My profile"></button>
 </header>
 
 <div class="searchwrap">
@@ -334,13 +414,22 @@ body{background:#0a110e}
 </label>
 </div>
 
-<div class="scroll">
+<div class="scroll" id="homeScroll">
 <div class="notice" id="notice">
+<div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>
 <span>Your messages are encrypted, but relays store and forward encrypted event data.</span>
 <button id="closeNotice" class="quiet" aria-label="Dismiss">✕</button>
 </div>
 <div id="list"></div>
 </div>
+
+<button id="fab" class="fab hidden" aria-label="New chat"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/></svg></button>
+
+<nav class="tabs">
+<button class="tab active" id="tabChats"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg><span>Chats</span></button>
+<button class="tab" id="tabSearch"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Search</span></button>
+<button class="tab" id="tabProfile"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4.5-6 8-6s7 2 8 6"/></svg><span>Profile</span></button>
+</nav>
 </section>
 
 <section id="thread" class="screen hidden">
@@ -359,7 +448,7 @@ body{background:#0a110e}
 </div>
 
 <div class="bar">
-<input id="txt" placeholder="Message…" autocomplete="off" enterkeyhint="send">
+<input id="txt" placeholder="Type a message…" autocomplete="off" enterkeyhint="send">
 <button id="send" aria-label="Send"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3.4 20.4 21 12 3.4 3.6l.01 6.5L15 12 3.4 13.9z"/></svg></button>
 </div>
 </section>
@@ -367,9 +456,7 @@ body{background:#0a110e}
 <div id="sheet" class="hidden">
 <div class="box">
 
-<h2>My RUSTLE identity</h2>
-
-<div class="hint">Your public identity and account settings.</div>
+<div class="mehead"><div class="avatar lg" id="sheetAvatar"></div><div class="introname" id="sheetName"></div><div class="p" id="sheetUser"></div></div>
 
 <div class="section">
 <h3>Public ID (npub)</h3>
@@ -1298,8 +1385,8 @@ return n;
 }
 
 function paintAvatar(n,pk,name){
-const h=parseInt((pk||"000000").slice(0,6),16)%360;
-n.style.background="hsl("+h+" 42% 38%)";
+const h=232+(parseInt((pk||"000000").slice(0,6),16)%62);
+n.style.background="hsl("+h+" 40% 42%)";
 n.textContent=initials(String(name||"?").replace(/^@/,""));
 }
 
@@ -1308,9 +1395,37 @@ const b=$("me");
 if(!b)return;
 paintAvatar(b,me,data.displayName||data.username||"Me");
 b.title=data.username?"@"+data.username:"My profile";
+if($("sheetAvatar")){
+paintAvatar($("sheetAvatar"),me,data.displayName||data.username||"Me");
+$("sheetName").textContent=data.displayName||(data.username?"@"+data.username:"Your profile");
+$("sheetUser").textContent=data.username&&data.displayName?"@"+data.username:"";
+}
 }
 
 function group(t){return el("div","group",t)}
+
+function bigIcon(path){
+return '<svg width="68" height="68" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+path+'</svg>';
+}
+
+const ICON_CHATS=bigIcon('<path d="M20 11.5a7.5 7.5 0 0 1-10.9 6.7L4 19.5l1.2-4.4A7.5 7.5 0 1 1 20 11.5z"/><path d="M8.5 10h7M8.5 13h4"/>');
+const ICON_NOFIND=bigIcon('<circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.9-4.9M8 10.5h5"/>');
+const ICON_WARN=bigIcon('<path d="M12 3.5 2.5 20h19z"/><path d="M12 10v4.5M12 17.5v.01"/>');
+
+function stateBlock(icon,title,text,btnText,onclick){
+const d=el("div","state");
+const i=el("div","ic");
+i.innerHTML=icon;
+d.append(i,el("strong",null,title),el("div",null,text));
+const b=el("button",null,btnText);
+b.onclick=onclick;
+d.append(b);
+return d;
+}
+
+function setTab(name){
+["Chats","Search"].forEach(t=>$("tab"+t).classList.toggle("active",t.toLowerCase()===name));
+}
 
 function personRow(pk,title,sub,btn,onclick){
 const row=el("div","row");
@@ -1475,7 +1590,7 @@ return row;
 
 }
 
-function renderPeople(box){
+function renderPeople(box,hasChats){
 
 if(people.pk){
 
@@ -1502,11 +1617,37 @@ return;
 
 if(people.state==="idle")return;
 
+const q0=people.q;
+
+if(people.state==="error"&&!hasChats){
+
+box.append(stateBlock(ICON_WARN,"Something went wrong",people.error,"Try Again",()=>{
+peopleCache.delete(q0);
+people={q:q0,state:"loading",items:[],pk:null};
+renderList();
+searchPeople(q0);
+}));
+
+return;
+
+}
+
+if(people.state==="done"&&!hasChats&&!people.items.filter(x=>x.public_key!==me).length){
+
+box.append(stateBlock(ICON_NOFIND,"No results found","Try a different username or check for typos.","Search Again",()=>{
+$("search").focus();
+$("search").select();
+}));
+
+return;
+
+}
+
 box.append(group("People"));
 
 if(people.state==="loading"){
 
-for(let i=0;i<2;i++){
+for(let i=0;i<3;i++){
 
 const s=el("div","skel");
 s.innerHTML='<i class="a"></i><div style="flex:1"><i class="b"></i><i class="c"></i></div>';
@@ -1554,6 +1695,8 @@ const q=raw.toLowerCase().replace(/^@/,"");
 
 $("notice").classList.toggle("hidden",!!raw||!!data.hideNotice);
 
+$("fab").classList.toggle("hidden",!!raw||!Object.keys(data.contacts).length);
+
 const ids=Object.keys(data.contacts)
 .filter(pk=>{
 if(!q)return true;
@@ -1564,24 +1707,12 @@ return (data.contacts[pk]+" "+(pr.u||"")+" "+pk).toLowerCase().includes(q);
 
 if(!raw&&!ids.length){
 
-const d=el("div","empty");
+const d=stateBlock(ICON_CHATS,"No conversations yet","Find your friends by their unique @username.","Search People",()=>$("search").focus());
 
-const ring=el("div","ring");
-ring.innerHTML='<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>';
-
-d.append(ring,el("strong",null,"Find people on RUSTLE"),el("div",null,"Search by @username to start a private chat."));
-
-const two=el("div","two");
-
-const find=el("button",null,"Search");
-find.onclick=()=>$("search").focus();
-
-const inv=el("button","alt","Invite a friend");
+const inv=el("button","alt","Invite a Friend");
 inv.onclick=()=>$("share").click();
 
-two.append(find,inv);
-
-d.append(two);
+d.append(inv);
 
 box.append(d);
 
@@ -1593,7 +1724,7 @@ if(raw&&ids.length)box.append(group("Chats"));
 
 ids.forEach(pk=>box.append(chatRow(pk)));
 
-if(raw)renderPeople(box);
+if(raw)renderPeople(box,ids.length>0);
 
 if(raw&&!box.childNodes.length){
 box.append(el("div","hintrow","Type at least 2 letters of a @username."));
@@ -1731,6 +1862,8 @@ function back(){
 
 current=null;
 
+setTab("chats");
+
 hide("thread");
 show("home");
 
@@ -1833,6 +1966,36 @@ const t=firstTarget();
 if(t)startChat(t);
 
 };
+
+$("tabChats").onclick=()=>{
+
+$("search").value="";
+
+onSearch();
+
+$("search").blur();
+
+setTab("chats");
+
+$("homeScroll").scrollTop=0;
+
+};
+
+$("tabSearch").onclick=()=>{
+
+setTab("search");
+
+$("search").focus();
+
+};
+
+$("tabProfile").onclick=()=>$("me").click();
+
+$("fab").onclick=()=>$("tabSearch").click();
+
+$("search").onfocus=()=>setTab("search");
+
+$("search").onblur=()=>{if(!$("search").value)setTab("chats")};
 
 $("clearSearch").onclick=()=>{
 
