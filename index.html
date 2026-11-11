@@ -1255,6 +1255,7 @@ const peer=current;
 
 if(!retryId){
 input.value="";
+input.focus();
 }
 
 const localId=retryId||
@@ -1280,8 +1281,6 @@ save();
 renderThread();
 
 }
-
-$("send").disabled=true;
 
 try{
 
@@ -1312,11 +1311,10 @@ t:ev.created_at,
 st:"sending"
 });
 
-const results=await Promise.allSettled(
-pool.publish(RELAYS,ev)
-);
-
-const ok=results.some(r=>r.status==="fulfilled");
+const ok=await Promise.race([
+Promise.any(pool.publish(RELAYS,ev)).then(()=>true,()=>false),
+new Promise(r=>setTimeout(()=>r(false),10000))
+]);
 
 insertMessage(peer,{
 id:ev.id,
