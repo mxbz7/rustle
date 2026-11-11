@@ -333,7 +333,7 @@ display:grid;place-items:center;flex:none
 }
 
 /* identity sheet */
-#sheet{
+#sheet,#csheet{
 position:fixed;
 inset:0;
 background:#000a;
@@ -342,7 +342,7 @@ align-items:flex-end;
 justify-content:center;
 z-index:5
 }
-#sheet .box{
+#sheet .box,#csheet .box{
 background:var(--bg);
 width:100%;
 max-width:560px;
@@ -376,6 +376,24 @@ padding:12px
 .success{color:#7fe0a8}
 .error{color:var(--danger)}
 .username-label{font-size:12px;color:var(--mut)}
+
+.menu{display:flex;flex-direction:column;gap:2px;background:var(--panel);border-radius:18px;padding:6px}
+.menuitem{
+display:flex;align-items:center;gap:14px;
+width:100%;
+background:transparent;
+color:var(--ink);
+text-align:left;
+font-weight:600;
+font-size:16px;
+padding:15px 12px;
+border-radius:14px
+}
+.menuitem:active{background:var(--tap)}
+.menuitem svg{color:var(--acc);flex:none}
+.menuitem.danger,.menuitem.danger svg{color:var(--danger)}
+.dangerbtn{background:#c94a4a;color:#fff}
+#csheet .section h3{font-size:17px}
 
 @media(min-width:700px){
 body{background:#16132a}
@@ -452,6 +470,45 @@ body{background:#16132a}
 <button id="send" aria-label="Send"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3.4 20.4 21 12 3.4 3.6l.01 6.5L15 12 3.4 13.9z"/></svg></button>
 </div>
 </section>
+
+<div id="csheet" class="hidden" role="dialog" aria-modal="true" aria-labelledby="csName">
+<div class="box">
+
+<div class="mehead">
+<div class="avatar lg" id="csAvatar"></div>
+<div class="introname" id="csName"></div>
+<div class="p" id="csSub"></div>
+</div>
+
+<div class="menu" id="csMenu">
+<button class="menuitem" id="csRename"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/></svg><span>Rename</span></button>
+<button class="menuitem" id="csCopy"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg><span id="csCopyLabel">Copy public ID</span></button>
+<button class="menuitem danger" id="csRemove"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg><span>Remove contact</span></button>
+</div>
+
+<div class="section hidden" id="csRenameBox">
+<label class="username-label" for="csInput">Contact name</label>
+<input id="csInput" maxlength="50" autocomplete="off">
+<div class="hint error" id="csErr"></div>
+<div class="two">
+<button class="alt" id="csRenameCancel">Cancel</button>
+<button id="csRenameSave">Save</button>
+</div>
+</div>
+
+<div class="section hidden" id="csConfirm">
+<h3>Remove this contact?</h3>
+<div class="hint">Their chat history will be deleted from this device. This can't be undone.</div>
+<div class="two">
+<button class="alt" id="csConfirmCancel">Keep</button>
+<button class="dangerbtn" id="csConfirmRemove">Remove</button>
+</div>
+</div>
+
+<button class="quiet" id="csClose">Close</button>
+
+</div>
+</div>
 
 <div id="sheet" class="hidden">
 <div class="box">
@@ -1367,7 +1424,7 @@ function initials(n){
 return (n||"?").trim()
 .split(/\s+/)
 .slice(0,2)
-.map(x=>x[0])
+.map(x=>Array.from(x)[0]||"")
 .join("")
 .toUpperCase();
 
@@ -1744,7 +1801,7 @@ const pr=data.profiles[pk]||{};
 
 $("title").textContent=data.contacts[pk];
 
-$("peer").textContent=pr.u?"@"+pr.u:pk.slice(0,12)+"…";
+$("peer").textContent=subtitleFor(pk);
 
 paintAvatar($("tavatar"),pk,data.contacts[pk]);
 
@@ -1780,7 +1837,7 @@ paintAvatar(av,current,data.contacts[current]);
 
 d.append(av,el("div","introname",data.contacts[current]));
 
-if(pr.u)d.append(el("div","p","@"+pr.u));
+if(pr.u&&data.contacts[current]!=="@"+pr.u)d.append(el("div","p","@"+pr.u));
 
 if(pr.b)d.append(el("div","bio",pr.b));
 
@@ -1871,44 +1928,97 @@ renderList();
 
 /* CONTACT OPTIONS */
 
-function rename(){
+function subtitleFor(pk){
 
-const old=data.contacts[current];
+const pr=data.profiles[pk]||{};
 
-const n=prompt("Contact name",old);
+if(pr.u)return data.contacts[pk]==="@"+pr.u?"":"@"+pr.u;
 
-if(n===null)return;
+return pk.slice(0,12)+"…";
 
-if(!n.trim()){
-alert("Name cannot be empty.");
-return;
 }
 
-data.contacts[current]=n.trim().slice(0,50);
+let csCopyTimer=null;
 
-save();
+function csView(v){
 
-$("title").textContent=data.contacts[current];
+$("csMenu").classList.toggle("hidden",v!=="menu");
 
-paintAvatar($("tavatar"),current,data.contacts[current]);
+$("csRenameBox").classList.toggle("hidden",v!=="rename");
 
-renderList();
+$("csConfirm").classList.toggle("hidden",v!=="confirm");
+
+$("csClose").classList.toggle("hidden",v!=="menu");
+
+if(v==="rename"){
+
+$("csInput").value=data.contacts[current];
+
+$("csErr").textContent="";
+
+setTimeout(()=>{$("csInput").focus();$("csInput").select()},60);
+
+}
 
 }
 
 function contactOptions(){
 
-const choice=prompt(
-"Contact options:\n1 — Rename\n2 — Copy public ID\n3 — Remove contact"
-);
+const pk=current;
 
-if(choice==="1")rename();
+if(!pk)return;
 
-if(choice==="2"){
-copyText(NT.nip19.npubEncode(current));
+paintAvatar($("csAvatar"),pk,data.contacts[pk]);
+
+$("csName").textContent=data.contacts[pk];
+
+$("csSub").textContent=subtitleFor(pk)||NT.nip19.npubEncode(pk).slice(0,16)+"…";
+
+$("csCopyLabel").textContent="Copy public ID";
+
+csView("menu");
+
+show("csheet");
+
 }
 
-if(choice==="3"&&confirm("Remove contact and chat history?")){
+function closeContactSheet(){
+
+hide("csheet");
+
+}
+
+function saveRename(){
+
+const n=$("csInput").value.trim();
+
+if(!n){
+
+$("csErr").textContent="Name cannot be empty.";
+
+return;
+
+}
+
+data.contacts[current]=n.slice(0,50);
+
+save();
+
+$("title").textContent=data.contacts[current];
+
+$("peer").textContent=subtitleFor(current);
+
+paintAvatar($("tavatar"),current,data.contacts[current]);
+
+renderList();
+
+renderThread();
+
+closeContactSheet();
+
+}
+
+function removeContact(){
 
 delete data.contacts[current];
 delete data.messages[current];
@@ -1917,9 +2027,9 @@ delete data.profiles[current];
 
 save();
 
-back();
+closeContactSheet();
 
-}
+back();
 
 }
 
@@ -1964,6 +2074,52 @@ const t=firstTarget();
 if(t)startChat(t);
 
 };
+
+$("csheet").onclick=e=>{if(e.target===$("csheet"))closeContactSheet()};
+
+$("csClose").onclick=closeContactSheet;
+
+$("csRename").onclick=()=>csView("rename");
+
+$("csRenameCancel").onclick=()=>csView("menu");
+
+$("csRenameSave").onclick=saveRename;
+
+$("csInput").onkeydown=e=>{if(e.key==="Enter")saveRename()};
+
+$("csRemove").onclick=()=>csView("confirm");
+
+$("csConfirmCancel").onclick=()=>csView("menu");
+
+$("csConfirmRemove").onclick=removeContact;
+
+$("csCopy").onclick=async()=>{
+
+const lab=$("csCopyLabel");
+
+try{
+
+await navigator.clipboard.writeText(NT.nip19.npubEncode(current));
+
+lab.textContent="Copied ✓";
+
+}catch{
+
+lab.textContent="Clipboard unavailable";
+
+}
+
+clearTimeout(csCopyTimer);
+
+csCopyTimer=setTimeout(()=>{lab.textContent="Copy public ID"},1800);
+
+};
+
+document.addEventListener("keydown",e=>{
+
+if(e.key==="Escape"&&!$("csheet").classList.contains("hidden"))closeContactSheet();
+
+});
 
 $("tabChats").onclick=()=>{
 
