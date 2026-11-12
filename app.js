@@ -37,13 +37,6 @@ const VERIFIED_BADGE_MESSAGE="This account is verified and is a part of Rustle d
 /* Ephemeral Nostr event used only to exchange (encrypted) connection offers. */
 const SIGNAL_KIND=25050;
 
-/* Ephemeral (never stored by relays) encrypted presence heartbeat, sent only to my contacts. */
-const PRESENCE_KIND=25051;
-const PRESENCE_INTERVAL=25000;
-const PRESENCE_TTL=65000;
-const PRESENCE_MAX_PEERS=60;
-const presence={seen:new Map(),ids:new Set(),repliedAt:new Map(),timer:null,sweep:null};
-
 const db={
 read(){
 try{return JSON.parse(localStorage.getItem(KEY))||{}}
@@ -118,10 +111,8 @@ toast.timer=setTimeout(()=>$("toast").textContent="",3500);
 }
 
 function status(t){
-const rel=/^Connected · (\d+)\/(\d+) relays$/.exec(t);
-$("status").textContent=rel?"Connected":t;
-if($("statusSub"))$("statusSub").textContent=rel?"via "+rel[1]+" relay"+(rel[1]==="1"?"":"s"):"";
-$("status").closest(".statusrow").classList.toggle("ok",/^Connected/.test(t));
+$("status").textContent=t;
+$("status").parentNode.classList.toggle("ok",/^Connected/.test(t));
 }
 
 function show(id){
@@ -634,7 +625,7 @@ save();
 renderList();
 if(current&&data.contacts[current]){
 setThreadTitle(current);
-$("peer").textContent=peerLine(current);
+$("peer").textContent=subtitleFor(current);
 paintAvatar($("tavatar"),current,data.contacts[current]);
 if(currentNameChanged||!getMessages(current).length)renderThread();
 }
@@ -786,7 +777,6 @@ return {connected,total:RELAYS.length};
 }
 
 function updateRelayStatus(){
-try{refreshPresenceDots()}catch{}
 if(!navigator.onLine){
 status("Offline · messages saved on this device");
 return;
@@ -845,7 +835,6 @@ RELAYS,
 [
 {kinds:[1059],"#p":[me],limit:500},
 {kinds:[SIGNAL_KIND],"#p":[me],since:Math.floor(Date.now()/1000)-120,limit:100},
-{kinds:[PRESENCE_KIND],"#p":[me],since:Math.floor(Date.now()/1000)-90,limit:100},
 {kinds:[4],"#p":[me],limit:500},
 {kinds:[4],authors:[me],limit:500}
 ],
@@ -865,7 +854,6 @@ scheduleRelayRetry();
 );
 watchRelayAuth();
 startRelayHealthMonitor();
-startPresence();
 }catch(error){
 console.warn("RUSTLE relay connection attempt failed:",error);
 scheduleRelayRetry();
@@ -1721,7 +1709,6 @@ function onRelayEvent(ev){
 
 if(ev&&ev.kind===1059)receiveWrap(ev);
 else if(ev&&ev.kind===SIGNAL_KIND)receiveSignal(ev);
-else if(ev&&ev.kind===PRESENCE_KIND)receivePresence(ev);
 else receive(ev);
 
 }
@@ -2111,8 +2098,6 @@ function paintAvatar(n,pk,name){
 const h=232+(parseInt((pk||"000000").slice(0,6),16)%62);
 n.style.background="hsl("+h+" 40% 42%)";
 n.textContent=initials(String(name||"?").replace(/^@/,""));
-n.dataset.pk=pk||"";
-if(pk&&isOnline(pk))n.append(el("i","online-dot"));
 }
 
 function renderMe(){
@@ -2488,7 +2473,7 @@ const pr=data.profiles[pk]||{};
 setThreadTitle(pk);
 closeChatMenu();
 
-$("peer").textContent=peerLine(pk);
+$("peer").textContent=subtitleFor(pk);
 
 paintAvatar($("tavatar"),pk,data.contacts[pk]);
 
@@ -2828,7 +2813,7 @@ save();
 
 setThreadTitle(current);
 
-$("peer").textContent=peerLine(current);
+$("peer").textContent=subtitleFor(current);
 
 paintAvatar($("tavatar"),current,data.contacts[current]);
 
@@ -2961,108 +2946,6 @@ return location.origin+location.pathname+"#add="+encodeURIComponent(npub);
 
 }
 
-/* ONLINE PRESENCE
-   Every ~25s while the app is open and visible, an encrypted ephemeral event is sent to each
-   contact. A contact counts as online if one arrived in the last ~65s. Sharing is reciprocal:
-   with "Show when I'm online" off, nothing is sent and no one else's status is shown. */
-
-function presenceEnabled(){return data.showOnline!==false}
-
-function ownOnline(){
- return presenceEnabled()&&navigator.onLine&&relayConnectionSummary().connected>0;
-}
-
-function isOnline(pk){
- if(!pk||!me)return false;
- if(pk===me)return ownOnline();
- if(!presenceEnabled()||!data.contacts||!data.contacts[pk])return false;
- const t=presence.seen.get(pk);
- return !!t&&Date.now()-t<PRESENCE_TTL;
-}
-
-function peerLine(pk){
- return isOnline(pk)&&pk!==me?"Online":subtitleFor(pk);
-}
-
-function refreshPresenceDots(){
- document.querySelectorAll(".avatar[data-pk]").forEach(n=>{
-  const on=isOnline(n.dataset.pk);
-  const dot=n.querySelector(":scope > .online-dot");
-  if(on&&!dot)n.append(el("i","online-dot"));
-  else if(!on&&dot)dot.remove();
- });
- if(current&&$("peer")&&!$("thread").classList.contains("hidden"))$("peer").textContent=peerLine(current);
-}
-
-function sendPresence(peer,state,wantReply){
- try{
-  if(!NT||!sk||!pool)return;
-  const content=NT.nip44.encrypt(JSON.stringify({v:1,type:"presence",s:state,r:wantReply?1:0}),convKey(sk,peer));
-  const ev=NT.finalizeEvent({kind:PRESENCE_KIND,created_at:Math.floor(Date.now()/1000),tags:[["p",peer]],content},sk);
-  pool.publish(RELAYS,ev).forEach(p=>Promise.resolve(p).catch(()=>{}));
- }catch{}
-}
-
-function broadcastPresence(state,wantReply){
- if(!presenceEnabled()||!pool||!navigator.onLine)return;
- if(state==="on"&&document.hidden)return;
- Object.keys(data.contacts||{}).slice(0,PRESENCE_MAX_PEERS).forEach((pk,i)=>{
-  setTimeout(()=>sendPresence(pk,state,wantReply),i*120);
- });
-}
-
-function startPresence(){
- if(presence.timer)clearInterval(presence.timer);
- if(presence.sweep)clearInterval(presence.sweep);
- broadcastPresence("on",true);
- presence.timer=setInterval(()=>broadcastPresence("on",false),PRESENCE_INTERVAL);
- presence.sweep=setInterval(refreshPresenceDots,15000);
- refreshPresenceDots();
-}
-
-function receivePresence(ev){
- if(!ev||ev.kind!==PRESENCE_KIND||!NT||!sk||ev.pubkey===me)return;
- if(!presenceEnabled()||!data.contacts[ev.pubkey])return;
- if(Math.abs(Date.now()/1000-ev.created_at)>90)return;
- if(!(ev.tags||[]).some(t=>t[0]==="p"&&t[1]===me))return;
- if(presence.ids.has(ev.id))return;
- if(presence.ids.size>500)presence.ids.clear();
- presence.ids.add(ev.id);
- try{
-  if(!NT.verifyEvent(ev))return;
-  const payload=JSON.parse(NT.nip44.decrypt(ev.content,convKey(sk,ev.pubkey)));
-  if(!payload||payload.v!==1||payload.type!=="presence")return;
-  if(payload.s==="off")presence.seen.delete(ev.pubkey);
-  else if(payload.s==="on")presence.seen.set(ev.pubkey,Date.now());
-  else return;
-  refreshPresenceDots();
-  if(payload.r&&payload.s==="on"&&!document.hidden){
-   const last=presence.repliedAt.get(ev.pubkey)||0;
-   if(Date.now()-last>10000){
-    presence.repliedAt.set(ev.pubkey,Date.now());
-    sendPresence(ev.pubkey,"on",false);
-   }
-  }
- }catch{}
-}
-
-document.addEventListener("visibilitychange",()=>{
- if(document.hidden)broadcastPresence("off",false);
-});
-window.addEventListener("pagehide",()=>broadcastPresence("off",false));
-
-function setShowOnline(on){
- if(!on)broadcastPresence("off",false); /* tell contacts before sharing is switched off */
- data.showOnline=!!on;
- db.write();
- if(on){startPresence()}
- else{
-  presence.seen.clear();
-  if(presence.timer){clearInterval(presence.timer);presence.timer=null}
- }
- refreshPresenceDots();
-}
-
 /* EVENTS */
 
 function wire(){
@@ -3076,7 +2959,6 @@ syncVisibleViewport();
 window.visualViewport?.addEventListener("resize",syncVisibleViewport,{passive:true});
 window.visualViewport?.addEventListener("scroll",syncVisibleViewport,{passive:true});
 window.addEventListener("orientationchange",()=>setTimeout(syncVisibleViewport,120),{passive:true});
-
 
 // No native text selection on messages (copy is handled by the custom long-press).
 document.addEventListener("selectstart",e=>{const t=e.target&&(e.target.nodeType===1?e.target:e.target.parentElement);if(t&&t.closest&&t.closest(".message-text"))e.preventDefault();});
@@ -3178,7 +3060,6 @@ $("tabSearch").onclick=()=>{
 $("searchBack").onclick=()=>closeSearchView();
 
 $("tabProfile").onclick=()=>$("me").click();
-$("tabNew").onclick=()=>$("tabSearch").click();
 
 $("fab").onclick=()=>$("tabSearch").click();
 
@@ -3192,7 +3073,6 @@ $("search").focus();
 
 };
 
-if($("showOnline")){$("showOnline").checked=data.showOnline!==false;$("showOnline").onchange=e=>setShowOnline(e.target.checked);}
 $("closeNotice").onclick=()=>{
 
 data.hideNotice=true;
