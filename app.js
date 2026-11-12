@@ -56,6 +56,12 @@ let current=null;
 let seen=new Set();
 let started=false;
 let connecting=false;
+let relayHealthTimer=null;
+let relayRetryTimer=null;
+let relayRetryAttempt=0;
+const RELAY_HEALTH_INTERVAL=5000;
+const RELAY_RETRY_BASE=2000;
+const RELAY_RETRY_MAX=60000;
 let usernameAvailable=false;
 let checkedUsername="";
 let registrationBusy=false;
@@ -506,7 +512,121 @@ data.contacts[pk]=name||("Friend "+pk.slice(0,6));
 
 save();
 renderList();
+queueProfileSync(pk);
 
+}
+
+/* CONTACT PROFILE SYNCHRONIZATION
+   Public profile data is fetched in batches from quick-worker. A local cache
+   prevents repeated requests; manually renamed contacts are protected. */
+
+const PROFILE_CACHE_TTL=6*60*60*1000;
+const PROFILE_BATCH_SIZE=50;
+let profileSyncTimer=null;
+let profileSyncRunning=false;
+const profileSyncPending=new Set();
+
+data.contactNameOverrides=data.contactNameOverrides||{};
+
+function profileNeedsRefresh(pk){
+const profile=data.profiles[pk];
+return !profile||!profile.checkedAt||Date.now()-profile.checkedAt>PROFILE_CACHE_TTL;
+}
+
+function queueProfileSync(pk){
+if(!pk||pk===me||!data.contacts[pk]||!navigator.onLine||!profileNeedsRefresh(pk))return;
+profileSyncPending.add(pk);
+clearTimeout(profileSyncTimer);
+profileSyncTimer=setTimeout(()=>syncContactProfiles(),350);
+}
+
+function applyContactProfile(pk,profile){
+if(!pk||pk===me||!profile||typeof profile.username!=="string")return false;
+const username=profile.username.trim().toLowerCase();
+if(!/^[a-z0-9_]{2,20}$/.test(username))return false;
+const previous=data.profiles[pk]||{};
+const displayName=typeof profile.display_name==="string"?profile.display_name.trim().slice(0,50):"";
+const bio=typeof profile.bio==="string"?profile.bio.slice(0,300):"";
+data.profiles[pk]={...previous,u:username,d:displayName,b:bio,checkedAt:Date.now(),missing:false};
+
+if(data.contacts[pk]&&!data.contactNameOverrides[pk]){
+const currentName=String(data.contacts[pk]);
+const generated=/^Friend [0-9a-f]{6}$/i.test(currentName)||currentName==="@"+username||(previous.u&&currentName==="@"+previous.u);
+/* Existing custom-looking names are conservatively treated as manual names. */
+if(!generated){
+data.contactNameOverrides[pk]=true;
+}else{
+data.contacts[pk]=displayName||("@"+username);
+}
+}
+return true;
+}
+
+async function syncContactProfiles(){
+if(!navigator.onLine||profileSyncRunning)return;
+for(const pk of Object.keys(data.contacts)){
+if(pk!==me&&profileNeedsRefresh(pk))profileSyncPending.add(pk);
+}
+if(!profileSyncPending.size)return;
+profileSyncRunning=true;
+let changed=false;
+let currentNameChanged=false;
+try{
+while(profileSyncPending.size&&navigator.onLine){
+const batch=Array.from(profileSyncPending).slice(0,PROFILE_BATCH_SIZE);
+batch.forEach(pk=>profileSyncPending.delete(pk));
+try{
+const result=await supabaseRequest(SEARCH_FUNCTION,{public_keys:batch});
+const rows=Array.isArray(result.results)?result.results:[];
+const found=new Set();
+for(const row of rows){
+if(!row||typeof row.public_key!=="string")continue;
+const pk=row.public_key.toLowerCase();
+if(!batch.includes(pk)||pk===me||!data.contacts[pk])continue;
+const previousContactName=data.contacts[pk];
+if(applyContactProfile(pk,row)){
+found.add(pk);
+changed=true;
+if(pk===current&&data.contacts[pk]!==previousContactName)currentNameChanged=true;
+}
+}
+/* Cache negative lookups too, so unregistered contacts don't cause request loops. */
+for(const pk of batch){
+if(pk===me||!data.contacts[pk])continue;
+if(!found.has(pk)){
+const old=data.profiles[pk]||{};
+data.profiles[pk]={...old,checkedAt:Date.now(),missing:true};
+changed=true;
+}
+}
+}catch(error){
+console.warn("RUSTLE profile sync failed:",error);
+}
+}
+}catch(error){
+console.warn("RUSTLE profile sync error:",error);
+}finally{
+profileSyncRunning=false;
+if(profileSyncPending.size&&navigator.onLine){
+clearTimeout(profileSyncTimer);
+profileSyncTimer=setTimeout(()=>syncContactProfiles(),500);
+}
+if(changed){
+save();
+renderList();
+if(current&&data.contacts[current]){
+$("title").textContent=data.contacts[current];
+$("peer").textContent=subtitleFor(current);
+paintAvatar($("tavatar"),current,data.contacts[current]);
+if(currentNameChanged||!getMessages(current).length)renderThread();
+}
+if(!$("csheet").classList.contains("hidden")&&current){
+$("csName").textContent=data.contacts[current];
+$("csSub").textContent=subtitleFor(current)||NT.nip19.npubEncode(current).slice(0,16)+"…";
+paintAvatar($("csAvatar"),current,data.contacts[current]);
+}
+}
+}
 }
 
 /* START APPLICATION */
@@ -566,7 +686,9 @@ seen=new Set(
 Object.values(data.messages).flat().map(m=>m.id)
 );
 
+data.contactNameOverrides=data.contactNameOverrides||{};
 renderList();
+syncContactProfiles();
 
 if(data.hideNotice)$("notice").classList.add("hidden");
 
@@ -619,27 +741,83 @@ document.addEventListener("visibilitychange",()=>{
 if(!document.hidden){
 connect();
 flushReadReceipts();
+syncContactProfiles();
 if(current)renderThread();
 }
 });
-window.addEventListener("online",flushReadReceipts);
+window.addEventListener("online",()=>{
+relayRetryAttempt=0;
+if(relayRetryTimer){clearTimeout(relayRetryTimer);relayRetryTimer=null}
+connect();
+flushReadReceipts();
+syncContactProfiles();
+});
+window.addEventListener("offline",()=>{
+status("Offline · messages saved on this device");
+});
+setInterval(()=>syncContactProfiles(),PROFILE_CACHE_TTL);
 
 }
 
 /* RELAY CONNECTION */
 
-function connect(){
+function relayConnectionSummary(){
+if(!pool||typeof pool.listConnectionStatus!=="function")return {connected:0,total:RELAYS.length};
+const states=pool.listConnectionStatus();
+let connected=0;
+RELAYS.forEach(url=>{if(states.get(url)===true)connected++});
+return {connected,total:RELAYS.length};
+}
 
-if(!pool||connecting)return;
-
-connecting=true;
-
-try{
-if(sub)sub.close();
-}catch{}
-
+function updateRelayStatus(){
+if(!navigator.onLine){
+status("Offline · messages saved on this device");
+return;
+}
+const state=relayConnectionSummary();
+if(state.connected===state.total){
+status("Connected · "+state.connected+"/"+state.total+" relays");
+relayRetryAttempt=0;
+}else if(state.connected>0){
+status("Connected · "+state.connected+"/"+state.total+" relays");
+}else if(connecting){
 status("Connecting to relays…");
+}else{
+status("Reconnecting to relays…");
+}
+}
 
+function scheduleRelayRetry(){
+if(!navigator.onLine||relayRetryTimer||connecting)return;
+const delay=Math.min(RELAY_RETRY_BASE*Math.pow(2,relayRetryAttempt),RELAY_RETRY_MAX);
+relayRetryAttempt=Math.min(relayRetryAttempt+1,8);
+relayRetryTimer=setTimeout(()=>{
+relayRetryTimer=null;
+connect();
+},delay);
+}
+
+function startRelayHealthMonitor(){
+if(relayHealthTimer)clearInterval(relayHealthTimer);
+relayHealthTimer=setInterval(()=>{
+if(!navigator.onLine)return;
+const state=relayConnectionSummary();
+updateRelayStatus();
+if(state.connected<state.total&&!connecting)scheduleRelayRetry();
+},RELAY_HEALTH_INTERVAL);
+}
+
+async function connect(){
+if(!pool||connecting||!navigator.onLine)return;
+connecting=true;
+if(relayRetryTimer){clearTimeout(relayRetryTimer);relayRetryTimer=null}
+status("Connecting to relays…");
+try{
+if(sub){
+const previous=sub;
+sub=null;
+try{await previous.close()}catch{}
+}
 sub=pool.subscribeMany(
 RELAYS,
 [
@@ -650,26 +828,27 @@ RELAYS,
 ],
 {
 onevent:onRelayEvent,
-
 oneose(){
-status("Connected · listening on relays");
+updateRelayStatus();
 flushReadReceipts();
+},
+onclose(){
+if(!connecting){
+updateRelayStatus();
+scheduleRelayRetry();
+}
 }
 }
 );
-
 watchRelayAuth();
-
-setTimeout(()=>{
-
+startRelayHealthMonitor();
+}catch(error){
+console.warn("RUSTLE relay connection attempt failed:",error);
+scheduleRelayRetry();
+}finally{
 connecting=false;
-
-if($("status").textContent==="Connecting to relays…"){
-status("Trying relays…");
+updateRelayStatus();
 }
-
-},2500);
-
 }
 
 /* PRIVATE MESSAGES (NIP-17: rumor -> seal -> gift wrap) */
@@ -1526,6 +1705,14 @@ Promise.resolve(pool.ensureRelay(url)).then(r=>{
 
 if(!r||typeof r.auth!=="function")return;
 
+r.onclose=()=>{
+r.__authed=false;
+if(!connecting){
+updateRelayStatus();
+scheduleRelayRetry();
+}
+};
+
 const doAuth=async()=>{
 
 if(r.__authed)return;
@@ -1536,9 +1723,9 @@ try{
 
 await r.auth(async e=>NT.finalizeEvent(e,sk));
 
+/* Authentication is handled on the existing socket. Do not rebuild the
+   global subscription here; doing so can create subscription churn. */
 clearTimeout(reauthTimer);
-
-reauthTimer=setTimeout(()=>{connecting=false;connect()},600);
 
 }catch{
 
@@ -1942,13 +2129,10 @@ if(!pk||pk===me)return;
 
 const old=data.contacts[pk];
 
-if(!old||/^Friend [0-9a-f]{6}$/.test(old)){
+if(!old){
 data.contacts[pk]=p.display_name||(p.username?"@"+p.username:"Friend "+pk.slice(0,6));
 }
-
-if(p.username){
-data.profiles[pk]={u:p.username,b:p.bio||""};
-}
+if(p.username)applyContactProfile(pk,p);
 
 save();
 
@@ -2442,6 +2626,8 @@ return;
 }
 
 data.contacts[current]=n.slice(0,50);
+data.contactNameOverrides=data.contactNameOverrides||{};
+data.contactNameOverrides[current]=true;
 
 save();
 
@@ -2471,6 +2657,8 @@ delete data.contacts[current];
 delete data.messages[current];
 delete data.unread[current];
 delete data.profiles[current];
+if(data.contactNameOverrides)delete data.contactNameOverrides[current];
+profileSyncPending.delete(current);
 
 save();
 
