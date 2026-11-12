@@ -152,20 +152,14 @@
 <div id="sheet" class="hidden">
 <div class="box">
 
-<div class="mehead"><div class="avatar lg" id="sheetAvatar"></div><div class="introname" id="sheetName"></div><div class="p" id="sheetUser"></div></div>
-
-<div class="section">
-<h3>Public ID (npub)</h3>
-<div class="full" id="npub"></div>
-<div class="two">
-<button id="copyNpub">Copy public ID</button>
-<button id="share" class="alt">Share invite</button>
-</div>
+<div class="mehead">
+<div class="avatar lg" id="sheetAvatar"></div>
+<div class="name-edit-row"><div class="introname" id="sheetName"></div><button id="editDisplayName" class="edit-name" aria-label="Edit display name" title="Edit display name"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 5 4 4M4 20l4-.8L19 8a2.8 2.8 0 0 0-4-4L4 15z"/></svg></button></div>
+<div class="p" id="sheetUser"></div>
 </div>
 
 <!-- USERNAME REGISTRATION -->
-
-<div class="section">
+<div class="section username-section">
 <h3>RUSTLE Username</h3>
 
 <div class="hint">
@@ -186,15 +180,21 @@ spellcheck="false"
 3–20 characters. Letters, numbers and underscores.
 </div>
 
-<div class="username-label">Display name (optional)</div>
-<input id="displayNameInput" maxlength="50" placeholder="Your display name">
-
-<div class="username-label">Bio (optional)</div>
-<textarea id="bioInput" maxlength="300" rows="3" placeholder="Tell people about yourself"></textarea>
+<input id="displayNameInput" type="hidden" value="">
+<input id="bioInput" type="hidden" value="">
 
 <button id="registerUsername" disabled>Register username</button>
 
 <div id="registrationStatus" class="toast"></div>
+</div>
+
+<div class="section public-id-section">
+<h3>Public ID (npub)</h3>
+<div class="full" id="npub"></div>
+<div class="two">
+<button id="copyNpub">Copy public ID</button>
+<button id="share" class="alt">Share invite</button>
+</div>
 </div>
 
 <!-- PRIVATE KEY -->

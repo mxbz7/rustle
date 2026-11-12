@@ -392,7 +392,8 @@ $("registrationStatus").textContent=
 
 data.username=username;
 data.displayName=$("displayNameInput").value.trim();
-data.bio=$("bioInput").value.trim();
+data.bio="";
+$("sheetName").textContent=data.displayName||(data.username?"@"+data.username:"Your profile");
 
 save();
 
@@ -2878,11 +2879,20 @@ $("chatMenu").onclick=contactOptions;
 /* OPEN IDENTITY SHEET */
 
 $("me").onclick=()=>{
-
 show("sheet");
-
 $("npub").textContent=npub;
+};
 
+/* EDIT DISPLAY NAME FROM THE PROFILE HEADER */
+$("editDisplayName").onclick=async()=>{
+const current=data.displayName||"";
+const next=prompt("Choose a display name",current);
+if(next===null)return;
+const value=next.trim().slice(0,50);
+if(!value){alert("Display name cannot be empty.");return;}
+if(!data.username){alert("Register a RUSTLE username before changing your display name.");return;}
+$("displayNameInput").value=value;
+await registerUsername();
 };
 
 /* CLOSE */
@@ -3126,6 +3136,22 @@ $("sitebar").classList.toggle("scrolled",scrollY>4);
 },{passive:true});
 
 }
+
+/* Prevent accidental page zoom across RUSTLE; photo viewer remains zoomable. */
+(function lockAppZoom(){
+  document.addEventListener("touchmove",function(e){
+    if(e.touches && e.touches.length > 1 && !e.target.closest(".image-viewer:not(.hidden)")) e.preventDefault();
+  },{passive:false});
+  document.addEventListener("gesturestart",function(e){
+    if(!e.target.closest(".image-viewer:not(.hidden)")) e.preventDefault();
+  },{passive:false});
+  document.addEventListener("gesturechange",function(e){
+    if(!e.target.closest(".image-viewer:not(.hidden)")) e.preventDefault();
+  },{passive:false});
+  document.addEventListener("wheel",function(e){
+    if(e.ctrlKey && !e.target.closest(".image-viewer:not(.hidden)")) e.preventDefault();
+  },{passive:false});
+})();
 
 /* APPLICATION START */
 
