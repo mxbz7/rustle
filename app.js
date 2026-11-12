@@ -1996,12 +1996,23 @@ return (n||"?").trim()
 
 }
 
-function isRustleVerified(pk){
-if(!pk||!NT)return false;
+function normalizeRustlePubkey(value){
+if(!value||!NT)return null;
 try{
-const encoded=NT.nip19.npubEncode(pk).toLowerCase();
-return RUSTLE_VERIFIED_USERS.some(entry=>entry.npub.toLowerCase()===encoded);
-}catch{return false;}
+const raw=String(value).trim().toLowerCase();
+if(/^[0-9a-f]{64}$/.test(raw))return raw;
+const decoded=NT.nip19.decode(raw);
+if(decoded.type==="npub"&&typeof decoded.data==="string")return decoded.data.toLowerCase();
+return null;
+}catch{return null;}
+}
+
+function isRustleVerified(pk){
+const candidate=normalizeRustlePubkey(pk);
+if(!candidate)return false;
+return RUSTLE_VERIFIED_USERS.some(entry=>
+normalizeRustlePubkey(entry.npub)===candidate
+);
 }
 
 function verifiedBadge(){
