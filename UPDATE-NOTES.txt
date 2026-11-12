@@ -1,0 +1,44 @@
+RUSTLE UI/UX UPDATE
+==================
+
+Implemented in this update
+--------------------------
+- Preserved the existing midnight-purple theme and current application architecture.
+- Made the search experience a dedicated full-screen mode with its own header; the home screen no longer shows the search field by default.
+- Preserved the conversation-list scroll position when leaving search.
+- Updated profile display-name editing to use a compact in-app dialog instead of browser prompt/alert dialogs.
+- Improved mobile viewport sizing, safe-area handling, scrolling, touch targets, and keyboard-aware screen height using the Visual Viewport API where available.
+- Added a more robust photo viewer interaction layer with pinch zoom, double-tap zoom, and one-finger panning while the viewer is open.
+- Kept long-press copy scoped to message text; timestamps and other message metadata remain outside the copy target.
+- Added a startup failure fallback so a failed initialization is less likely to leave a blank screen.
+- Updated the service worker cache version and hardened shell caching/update behavior.
+- Added reduced-motion-aware dialog transitions and compact profile edit UI.
+
+Files changed
+-------------
+- index.html
+- style.css
+- app.js
+- sw.js
+
+Validation performed
+--------------------
+- JavaScript syntax check: app.js passed (node --check).
+- Service worker syntax check: sw.js passed (node --check).
+- HTML parser check: passed; no duplicate element IDs found.
+- CSS parser check (tinycss2): passed; no top-level parse errors found.
+
+Limitations
+-----------
+- A full browser/device interaction test could not be completed in this environment; headless Chromium did not finish loading/returning the app DOM before the execution timeout.
+- Nostr relay messaging, Supabase username registration, encrypted image transfer, and real Android keyboard behavior still need end-to-end verification on a deployed build and a physical Android device.
+- Existing encryption, Nostr, Supabase, identity, and attachment logic was intentionally not rewritten.
+
+Deployment
+----------
+1. Back up the currently deployed project.
+2. Replace the deployed project files with the contents of this ZIP.
+3. Deploy the complete project to the same static hosting location.
+4. Open RUSTLE once while online so the new service worker can install and activate.
+5. If an installed PWA appears stale, fully close and reopen it after the service worker update completes.
+6. Verify chat send/receive, profile editing, username registration, photo transfer, and photo viewer gestures on a real Android device.

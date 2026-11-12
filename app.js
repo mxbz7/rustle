@@ -2019,6 +2019,8 @@ function bigIcon(path){
 return '<svg width="68" height="68" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+path+'</svg>';
 }
 
+let homeListScrollTop=0;
+
 const ICON_CHATS=bigIcon('<path d="M20 11.5a7.5 7.5 0 0 1-10.9 6.7L4 19.5l1.2-4.4A7.5 7.5 0 1 1 20 11.5z"/><path d="M8.5 10h7M8.5 13h4"/>');
 const ICON_NOFIND=bigIcon('<circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.9-4.9M8 10.5h5"/>');
 const ICON_WARN=bigIcon('<path d="M12 3.5 2.5 20h19z"/><path d="M12 10v4.5M12 17.5v.01"/>');
@@ -2315,7 +2317,7 @@ return (data.contacts[pk]+" "+(pr.u||"")+" "+pk).toLowerCase().includes(q);
 
 if(!raw&&!ids.length){
 
-const d=stateBlock(ICON_CHATS,"No conversations yet","Find your friends by their unique @username.","Search People",()=>$("search").focus());
+const d=stateBlock(ICON_CHATS,"No conversations yet","Find your friends by their unique @username.","Search People",()=>$("tabSearch").click());
 
 const inv=el("button","alt","Invite a Friend");
 inv.onclick=()=>$("share").click();
@@ -2404,8 +2406,19 @@ async function shareSharedImage(rid,name){
  try{const blob=await getLocalImage(rid);if(!blob){toast("Original image is not available on this device.");return;}const file=new File([blob],name||"rustle-image",{type:blob.type||"image/jpeg"});if(navigator.canShare&&navigator.canShare({files:[file]}))await navigator.share({files:[file],title:name||"RUSTLE photo"});else if(navigator.share)await navigator.share({title:name||"RUSTLE photo",url:location.href});else await saveSharedImage(rid,name);}catch(e){if(e.name!=="AbortError")toast("Sharing isn't available here.");}
 }
 function openImageViewer(src,name,rid){
- let v=document.getElementById("imageViewer");if(!v){v=document.createElement("div");v.id="imageViewer";v.className="image-viewer hidden";v.setAttribute("role","dialog");v.setAttribute("aria-modal","true");v.setAttribute("aria-label","Photo viewer");v.innerHTML='<div class="viewer-top"><span class="viewer-name"></span><button class="viewer-close" type="button" aria-label="Close photo">×</button></div><div class="viewer-stage"><img alt=""></div><div class="viewer-actions"><button class="image-action" type="button" data-viewer-save><svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 17v3h14v-3"/></svg><span>Save photo</span></button><button class="image-action" type="button" data-viewer-share><svg viewBox="0 0 24 24"><path d="M12 16V3m0 0L7 8m5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg><span>Share</span></button></div>';document.body.append(v);v.querySelector(".viewer-close").onclick=()=>v.classList.add("hidden");v.addEventListener("click",e=>{if(e.target===v)v.classList.add("hidden")});v.querySelector("[data-viewer-save]").onclick=()=>saveSharedImage(v.dataset.rid,v.dataset.name);v.querySelector("[data-viewer-share]").onclick=()=>shareSharedImage(v.dataset.rid,v.dataset.name);document.addEventListener("keydown",e=>{if(e.key==="Escape")v.classList.add("hidden")});}
- v.dataset.rid=rid;v.dataset.name=name;v.querySelector(".viewer-name").textContent=name;v.querySelector(".viewer-stage img").src=src;v.querySelector(".viewer-stage img").alt=name;v.classList.remove("hidden");
+ let v=document.getElementById("imageViewer");if(!v){v=document.createElement("div");v.id="imageViewer";v.className="image-viewer hidden";v.setAttribute("role","dialog");v.setAttribute("aria-modal","true");v.setAttribute("aria-label","Photo viewer");v.innerHTML='<div class="viewer-top"><span class="viewer-name"></span><button class="viewer-close" type="button" aria-label="Close photo">×</button></div><div class="viewer-stage"><img alt=""></div><div class="viewer-actions"><button class="image-action" type="button" data-viewer-save><svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 17v3h14v-3"/></svg><span>Save photo</span></button><button class="image-action" type="button" data-viewer-share><svg viewBox="0 0 24 24"><path d="M12 16V3m0 0L7 8m5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg><span>Share</span></button></div>';document.body.append(v);v.querySelector(".viewer-close").onclick=()=>closeImageViewer(v);v.addEventListener("click",e=>{if(e.target===v)closeImageViewer(v)});v.querySelector("[data-viewer-save]").onclick=()=>saveSharedImage(v.dataset.rid,v.dataset.name);v.querySelector("[data-viewer-share]").onclick=()=>shareSharedImage(v.dataset.rid,v.dataset.name);document.addEventListener("keydown",e=>{if(e.key==="Escape")closeImageViewer(v)});setupPhotoGestures(v);}
+ v.dataset.rid=rid;v.dataset.name=name;v.querySelector(".viewer-name").textContent=name;v.querySelector(".viewer-stage img").src=src;v.querySelector(".viewer-stage img").alt=name;resetPhotoZoom(v);v.classList.remove("hidden");
+}
+
+function closeImageViewer(v){v.classList.add("hidden");resetPhotoZoom(v)}
+function resetPhotoZoom(v){const img=v.querySelector(".viewer-stage img");img.style.transform="translate3d(0,0,0) scale(1)";img.dataset.scale="1";img.dataset.x="0";img.dataset.y="0"}
+function setupPhotoGestures(v){
+ const stage=v.querySelector(".viewer-stage"),img=stage.querySelector("img");let startDistance=0,startScale=1,baseX=0,baseY=0,lastTap=0,panX=0,panY=0;
+ const pointDistance=t=>Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY);
+ const apply=()=>{img.style.transform=`translate3d(${baseX}px,${baseY}px,0) scale(${startScale})`;img.dataset.scale=String(startScale);img.dataset.x=String(baseX);img.dataset.y=String(baseY)};
+ stage.addEventListener("touchstart",e=>{if(e.touches.length===2){startDistance=pointDistance(e.touches);startScale=Number(img.dataset.scale||1);baseX=Number(img.dataset.x||0);baseY=Number(img.dataset.y||0)}else if(e.touches.length===1){panX=e.touches[0].clientX;panY=e.touches[0].clientY;const now=Date.now();if(now-lastTap<280){startScale=Number(img.dataset.scale||1)>1?1:2.5;baseX=0;baseY=0;apply()}lastTap=now;}},{passive:true});
+ stage.addEventListener("touchmove",e=>{if(e.touches.length===2&&startDistance){e.preventDefault();startScale=Math.max(1,Math.min(4,startScale*pointDistance(e.touches)/startDistance));startDistance=pointDistance(e.touches);apply()}else if(e.touches.length===1&&Number(img.dataset.scale||1)>1){e.preventDefault();baseX+=e.touches[0].clientX-panX;baseY+=e.touches[0].clientY-panY;panX=e.touches[0].clientX;panY=e.touches[0].clientY;startScale=Number(img.dataset.scale||1);apply()}},{passive:false});
+ stage.addEventListener("touchend",()=>{startDistance=0},{passive:true});
 }
 
 function renderThread(){
@@ -2734,6 +2747,16 @@ return location.origin+location.pathname+"#add="+encodeURIComponent(npub);
 
 function wire(){
 
+// Keep the app viewport aligned with the visible Android viewport when the keyboard opens.
+const syncVisibleViewport=()=>{
+  const height=window.visualViewport?window.visualViewport.height:window.innerHeight;
+  document.documentElement.style.setProperty("--app-height",Math.round(height)+"px");
+};
+syncVisibleViewport();
+window.visualViewport?.addEventListener("resize",syncVisibleViewport,{passive:true});
+window.visualViewport?.addEventListener("scroll",syncVisibleViewport,{passive:true});
+window.addEventListener("orientationchange",()=>setTimeout(syncVisibleViewport,120),{passive:true});
+
 // Prevent accidental selection/copying of interface labels and timestamps.
 // Message bodies retain their dedicated long-press copy action.
 document.addEventListener("copy",e=>{
@@ -2801,9 +2824,10 @@ csCopyTimer=setTimeout(()=>{lab.textContent="Copy public ID"},1800);
 };
 
 document.addEventListener("keydown",e=>{
-
-if(e.key==="Escape"&&!$("csheet").classList.contains("hidden"))closeContactSheet();
-
+  if(e.key!=="Escape")return;
+  if(!$("csheet").classList.contains("hidden")){closeContactSheet();return;}
+  if($("home").classList.contains("search-mode")){closeSearchView();return;}
+  if(!$("sheet").classList.contains("hidden"))hide("sheet");
 });
 
 function closeSearchView(){
@@ -2813,12 +2837,13 @@ function closeSearchView(){
   onSearch();
   $("search").blur();
   setTab("chats");
-  $("homeScroll").scrollTop=0;
+  $("homeScroll").scrollTop=homeListScrollTop;
 }
 
 $("tabChats").onclick=()=>closeSearchView();
 
 $("tabSearch").onclick=()=>{
+  homeListScrollTop=$("homeScroll").scrollTop;
   $("searchPanel").classList.remove("hidden");
   $("home").classList.add("search-mode");
   setTab("search");
@@ -2884,16 +2909,26 @@ $("npub").textContent=npub;
 };
 
 /* EDIT DISPLAY NAME FROM THE PROFILE HEADER */
-$("editDisplayName").onclick=async()=>{
-const current=data.displayName||"";
-const next=prompt("Choose a display name",current);
-if(next===null)return;
-const value=next.trim().slice(0,50);
-if(!value){alert("Display name cannot be empty.");return;}
-if(!data.username){alert("Register a RUSTLE username before changing your display name.");return;}
-$("displayNameInput").value=value;
-await registerUsername();
+$("editDisplayName").onclick=()=>{
+  $("displayNameEditInput").value=data.displayName||"";
+  $("displayNameError").textContent=data.username?"":"Register a RUSTLE username before changing your display name.";
+  $("displayNameSave").disabled=!data.username;
+  show("displayNameDialog");
+  setTimeout(()=>$("displayNameEditInput").focus(),60);
 };
+$("displayNameCancel").onclick=()=>hide("displayNameDialog");
+$("displayNameDialog").onclick=e=>{if(e.target.id==="displayNameDialog")hide("displayNameDialog")};
+$("displayNameSave").onclick=async()=>{
+  const value=$("displayNameEditInput").value.trim().slice(0,50);
+  if(!value){$("displayNameError").textContent="Display name cannot be empty.";return;}
+  if(!data.username){$("displayNameError").textContent="Register a RUSTLE username first.";return;}
+  $("displayNameInput").value=value;
+  $("displayNameSave").disabled=true;
+  await registerUsername();
+  if(data.displayName===value)hide("displayNameDialog");
+  else {$("displayNameError").textContent=$("registrationStatus").textContent||"Could not update your display name.";$("displayNameSave").disabled=false;}
+};
+$("displayNameEditInput").onkeydown=e=>{if(e.key==="Enter")$("displayNameSave").click();if(e.key==="Escape")hide("displayNameDialog")};
 
 /* CLOSE */
 
@@ -3164,7 +3199,13 @@ if(installedApp||new URLSearchParams(location.search).has("app")){
 
 wire();
 
-boot();
+boot().catch(error=>{
+  console.error("RUSTLE startup failed:",error);
+  status("RUSTLE could not start. Reload to try again.");
+  show("home");
+  const list=$("list");
+  if(list){list.textContent="";list.append(stateBlock(ICON_WARN,"Could not start RUSTLE","Something went wrong while loading the app. Your locally stored identity and messages have not been intentionally changed.","Reload",()=>location.reload()));}
+});
 
 }else{
 

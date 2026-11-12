@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://battrqecbyydvqbzrsxi.supabase.co wss://relay.damus.io wss://nos.lol wss://relay.primal.net wss://relay.nostr.band; manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#1E1B2E">
 <meta name="description" content="RUSTLE — Private encrypted messaging on Nostr.">
 <link rel="manifest" href="./manifest.webmanifest">
@@ -246,6 +246,19 @@ This version uses Nostr NIP-04 encrypted direct messages. It is an older Nostr e
 <button class="alt" id="close">Close</button>
 
 </div>
+</div>
+
+
+<div id="displayNameDialog" class="dialog-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="displayNameTitle">
+  <div class="dialog-card">
+    <div class="dialog-grip" aria-hidden="true"></div>
+    <h2 id="displayNameTitle">Edit display name</h2>
+    <p class="hint">This is the name people see in your RUSTLE conversations.</p>
+    <label class="username-label" for="displayNameEditInput">Display name</label>
+    <input id="displayNameEditInput" maxlength="50" autocomplete="name" placeholder="Your display name">
+    <div id="displayNameError" class="hint error" aria-live="polite"></div>
+    <div class="two"><button id="displayNameCancel" class="alt" type="button">Cancel</button><button id="displayNameSave" type="button">Save</button></div>
+  </div>
 </div>
 
 <script src="./nostr.bundle.js"></script>

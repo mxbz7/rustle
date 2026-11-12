@@ -1,9 +1,43 @@
-const CACHE="rustle-image-turn-v21";
-const ASSETS=["./","./index.html","./style.css","./app.js","./nostr.bundle.js","./manifest.webmanifest","./icon-192.png","./icon-512.png"];
-self.addEventListener("install",event=>{event.waitUntil(caches.open(CACHE).then(cache=>Promise.all(ASSETS.map(a=>cache.add(a).catch(()=>{})))));self.skipWaiting()});
-self.addEventListener("activate",event=>{event.waitUntil((async()=>{for(const key of await caches.keys())if(key!==CACHE)await caches.delete(key);await self.clients.claim()})())});
-self.addEventListener("fetch",event=>{
- const req=event.request;if(req.method!=="GET")return;
- const url=new URL(req.url);if(url.origin!==location.origin)return;
- event.respondWith((async()=>{const cache=await caches.open(CACHE);try{const response=await fetch(req);if(response.ok)cache.put(req,response.clone());return response}catch(error){return (await cache.match(req))||(req.mode==="navigate"?await cache.match("./index.html"):Response.error())}})())
+"use strict";
+const CACHE = "rustle-shell-v22";
+const SHELL = ["./", "./index.html", "./style.css", "./app.js", "./nostr.bundle.js", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./icon-maskable-512.png"];
+self.addEventListener("install", event => {
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE);
+    await Promise.all(SHELL.map(path => cache.add(path).catch(() => null)));
+    await self.skipWaiting();
+  })());
+});
+self.addEventListener("activate", event => {
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.filter(key => key.startsWith("rustle-") && key !== CACHE).map(key => caches.delete(key)));
+    await self.clients.claim();
+  })());
+});
+self.addEventListener("fetch", event => {
+  const request = event.request;
+  if (request.method !== "GET") return;
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin) return;
+  if (request.cache === "only-if-cached" && request.mode !== "same-origin") return;
+  event.respondWith((async () => {
+    const cache = await caches.open(CACHE);
+    try {
+      const response = await fetch(request);
+      if (response && response.ok && response.type !== "opaque") {
+        const copy = response.clone();
+        await cache.put(request, copy).catch(() => {});
+      }
+      return response;
+    } catch (error) {
+      const cached = await cache.match(request);
+      if (cached) return cached;
+      if (request.mode === "navigate") {
+        const shell = await cache.match("./index.html");
+        if (shell) return shell;
+      }
+      return new Response("Offline and this resource is not cached.", { status: 503, headers: { "Content-Type": "text/plain; charset=utf-8" } });
+    }
+  })());
 });

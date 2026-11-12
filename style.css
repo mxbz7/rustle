@@ -571,3 +571,49 @@ input:focus,textarea:focus,.bar input:focus{box-shadow:0 0 0 3px #A78BEA20}
 .public-id-section .full{font-size:11px;line-height:1.45;max-height:76px;overflow:auto}
 #sheet .box>.section{flex:none}
 @media(prefers-reduced-motion:no-preference){.edit-name{transition:transform .16s ease,filter .16s ease}.edit-name:active{filter:brightness(1.12)}}
+
+
+/* RUSTLE mobile interaction and layout refinement */
+:root{--app-height:100dvh;--keyboard-inset:0px}
+html,body{overscroll-behavior:none}
+#home,#thread{overflow:hidden}
+body{min-height:var(--app-height);padding:0}
+.screen{height:var(--app-height);min-height:0}
+#home,#thread{padding-top:0}
+.top{padding-top:calc(12px + env(safe-area-inset-top));min-height:calc(62px + env(safe-area-inset-top))}
+.tabs{padding-bottom:calc(6px + env(safe-area-inset-bottom));flex:none}
+.scroll{scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain}
+.scroll::-webkit-scrollbar{display:none}
+.row{min-height:76px;align-items:center}
+.row .n{font-weight:680;letter-spacing:0}
+.row .p{line-height:1.35}
+#home.search-mode{background:var(--bg)}
+#home.search-mode>.top{display:none}
+#home.search-mode>.search-panel{display:block!important;position:relative;z-index:3;flex:none;padding:calc(10px + env(safe-area-inset-top)) 14px 12px;background:var(--bg);border-bottom:1px solid var(--line);animation:search-enter .18s var(--ease) both}
+#home.search-mode #homeScroll{flex:1;min-height:0;padding-top:10px;padding-bottom:18px}
+#home.search-mode #homeScroll .notice{display:none}
+#home.search-mode .searchbox{min-height:48px;border-radius:15px;background:var(--panel);border:1px solid var(--line);box-shadow:none}
+#home.search-mode .searchbox input{font-size:16px}
+#home.search-mode .tabs{display:none}
+#home.search-mode #searchBack{background:var(--panel);font-size:26px;width:42px;height:42px}
+#thread .scroll{padding-bottom:12px}
+#thread .bar{padding-bottom:calc(10px + env(safe-area-inset-bottom));transition:padding-bottom .12s ease}
+.bar input{min-height:46px}
+button,.row,.tab,.image-action{touch-action:manipulation}
+button{min-height:42px}
+.m .message-text{touch-action:pan-y; -webkit-touch-callout:none}
+.m small,.day,.statusrow,.brand,.row .n,.row .p,.threadhead,.tab span,.username-label{user-select:none;-webkit-user-select:none}
+.image-viewer{overscroll-behavior:contain;touch-action:none}
+.viewer-stage{overflow:hidden;touch-action:none;overscroll-behavior:contain}
+.viewer-stage img{max-width:100%;max-height:100%;touch-action:none;transform-origin:center center;will-change:transform}
+.dialog-backdrop{position:fixed;inset:0;z-index:30;display:flex;align-items:flex-end;justify-content:center;padding:16px 12px calc(12px + env(safe-area-inset-bottom));background:#080710a8;backdrop-filter:blur(5px);animation:dialog-fade .16s ease both}
+.dialog-backdrop.hidden{display:none!important}
+.dialog-card{width:min(100%,440px);padding:12px 18px 18px;border:1px solid #ffffff12;border-radius:24px;background:#29253b;box-shadow:0 18px 50px #0008;display:grid;gap:10px;animation:dialog-rise .2s var(--ease) both}
+.dialog-card h2{font-size:19px;margin:4px 0 0}
+.dialog-card p{margin:0}
+.dialog-grip{width:38px;height:4px;border-radius:99px;background:#ffffff40;margin:0 auto 3px}
+.dialog-card input{min-height:48px}
+@keyframes dialog-fade{from{opacity:0}to{opacity:1}}
+@keyframes dialog-rise{from{opacity:.7;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+@media(min-width:700px){.dialog-backdrop{align-items:center}.dialog-card{border-radius:24px}}
+@media(prefers-reduced-motion:reduce){.dialog-card,.dialog-backdrop{animation:none!important}}
