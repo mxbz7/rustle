@@ -223,7 +223,7 @@ $("registrationStatus").textContent="";
 
 if(!username){
 
-setUsernameStatus("hint","3–20 characters. Letters, numbers and underscores.");
+setUsernameStatus("hint","3–20 letters, numbers or _");
 
 }else if(data.username&&username===data.username){
 
@@ -708,9 +708,6 @@ if(data.username){
 
 $("usernameInput").value=data.username;
 
-$("registrationStatus").textContent=
-"Registered username: @"+data.username;
-
 }
 
 if(data.displayName){
@@ -722,10 +719,6 @@ $("bioInput").value=data.bio;
 }
 
 onUsernameInput();
-
-if(data.username){
-$("registrationStatus").textContent="Registered username: @"+data.username;
-}
 
 let inviteVal=(location.hash.match(/(?:add=)([^&]+)/)||[])[1]||null;
 

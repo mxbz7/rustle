@@ -561,16 +561,6 @@ input:focus,textarea:focus,.bar input:focus{box-shadow:0 0 0 3px #A78BEA20}
 .mehead .avatar.lg{width:76px;height:76px;font-size:27px}
 .name-edit-row{display:flex;align-items:center;justify-content:center;gap:9px}
 .introname{font-size:19px;font-weight:800;line-height:1.2}
-.edit-name{width:30px;height:30px;padding:0;border-radius:50%;display:grid;place-items:center;background:var(--pri);color:#fff;box-shadow:0 3px 12px #0003}
-.edit-name:active{transform:scale(.92)}
-.username-section{order:1;padding:12px;gap:7px}
-.public-id-section{order:2;padding:12px;gap:7px}
-.username-section .hint{line-height:1.4}
-.username-section input:not([type=hidden]){min-height:46px}
-#registerUsername{min-height:46px;margin-top:2px}
-.public-id-section .full{font-size:11px;line-height:1.45;max-height:76px;overflow:auto}
-#sheet .box>.section{flex:none}
-@media(prefers-reduced-motion:no-preference){.edit-name{transition:transform .16s ease,filter .16s ease}.edit-name:active{filter:brightness(1.12)}}
 
 
 /* RUSTLE mobile interaction and layout refinement */
@@ -670,3 +660,45 @@ button{min-height:42px}
 .chat-pop-item svg{color:#A78BEA;flex:none}
 .chat-pop-item:active{background:#A78BEA24;transform:none}
 .chat-pop-item:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
+
+
+/* ---- My profile sheet: compact, clean ---- */
+#sheet .box{gap:10px;padding-top:16px}
+.pf-head{display:flex;align-items:center;gap:14px;padding:0 2px 2px}
+.pf-head .avatar.lg{width:64px;height:64px;font-size:23px;flex:none}
+.pf-id{flex:1;min-width:0;text-align:left}
+.pf-id .name-edit-row{display:flex;align-items:center;justify-content:flex-start;flex-wrap:nowrap;gap:6px;max-width:100%;min-width:0}
+.pf-id .introname{font-size:20px;margin-top:0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pf-id .verified-badge{width:24px;height:24px}
+.pf-id .p{font-size:14px;color:var(--mut);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pf-id .p:empty{display:none}
+.edit-name{flex:none;width:32px;height:32px;padding:0;border-radius:10px;display:grid;place-items:center;background:transparent;color:var(--mut);box-shadow:none}
+.edit-name:active{background:#A78BEA22;color:#fff;transform:none}
+.pf-close{flex:none;align-self:flex-start;width:36px;height:36px;padding:0;border-radius:50%;display:grid;place-items:center;background:#ffffff0d;color:var(--mut)}
+.pf-close:active{background:#A78BEA22;color:#fff}
+#sheet .box>.section{flex:none;padding:14px;gap:8px}
+.pf-label{font-size:13px;font-weight:700;color:var(--mut)}
+.username-section input:not([type=hidden]){min-height:46px}
+.username-section .hint{font-size:12.5px;min-height:18px;line-height:1.35}
+#registerUsername{min-height:46px}
+#registrationStatus:empty,#sheet #toast:empty{display:none}
+.pf-idrow{display:flex;align-items:center;gap:8px}
+.pf-npub{flex:1;min-width:0;font:13px/1.3 ui-monospace,monospace;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pf-icon{flex:none;width:46px;height:46px;padding:0;border-radius:12px;display:grid;place-items:center;background:var(--pri);color:#fff}
+.public-id-section>.alt{min-height:46px}
+.pf-sec{background:var(--panel);border-radius:18px;flex:none}
+.pf-sec>summary{list-style:none;display:flex;align-items:center;justify-content:space-between;padding:15px 14px;font-weight:650;cursor:pointer;color:var(--ink)}
+.pf-sec>summary::-webkit-details-marker{display:none}
+.pf-sec>summary svg{color:var(--acc);transition:transform .18s ease}
+.pf-sec[open]>summary svg{transform:rotate(180deg)}
+.pf-sec-body{display:grid;gap:8px;padding:0 14px 14px}
+.pf-sec-body .full{background:var(--bg);max-height:96px;overflow:auto}
+.pf-sec-body input{background:var(--bg)}
+.pf-sep{height:1px;background:var(--line);margin:4px 0}
+#sheet #toast:not(:empty){position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom));transform:translateX(-50%);max-width:calc(100vw - 32px);padding:9px 16px;border-radius:999px;background:#29253B;border:1px solid #A78BEA44;color:#fff;font-size:13px;box-shadow:0 8px 24px #000a;z-index:40;pointer-events:none;text-align:center}
+/* badge card opens downward inside the profile header */
+.pf-id .verified-tooltip{bottom:auto;top:calc(100% + 12px);font-weight:400;transform:translate(calc(-50% + var(--tip-dx,0px)),-5px)}
+.pf-id .verified-badge-wrap.is-open .verified-tooltip{transform:translate(calc(-50% + var(--tip-dx,0px)),0)}
+.pf-id .verified-tooltip:after{top:auto;bottom:100%;border:0;border-left:1px solid #a52cff;border-top:1px solid #a52cff;transform:translate(-50%,5px) rotate(45deg)}
+#sheet .box>.section,.pf-sec-body{grid-template-columns:minmax(0,1fr)}
+#sheet .box{overflow-x:hidden}

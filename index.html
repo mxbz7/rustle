@@ -155,101 +155,54 @@
 </div>
 </div>
 
-<div id="sheet" class="hidden">
+<div id="sheet" class="hidden" role="dialog" aria-modal="true" aria-label="My profile">
 <div class="box">
 
-<div class="mehead">
+<div class="pf-head">
 <div class="avatar lg" id="sheetAvatar"></div>
-<div class="name-edit-row"><div class="introname" id="sheetName"></div><button id="editDisplayName" class="edit-name" aria-label="Edit display name" title="Edit display name"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 5 4 4M4 20l4-.8L19 8a2.8 2.8 0 0 0-4-4L4 15z"/></svg></button></div>
+<div class="pf-id">
+<div class="name-edit-row"><div class="introname" id="sheetName"></div><button id="editDisplayName" class="edit-name" type="button" aria-label="Edit display name" title="Edit display name"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 5 4 4M4 20l4-.8L19 8a2.8 2.8 0 0 0-4-4L4 15z"/></svg></button></div>
 <div class="p" id="sheetUser"></div>
 </div>
+<button id="close" class="pf-close" type="button" aria-label="Close"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+</div>
 
-<!-- USERNAME REGISTRATION -->
 <div class="section username-section">
-<h3>RUSTLE Username</h3>
-
-<div class="hint">
-Choose a unique username. Other people will be able to find your RUSTLE account using it.
-</div>
-
-<div class="username-label">Username</div>
-<input
-id="usernameInput"
-placeholder="Enter username"
-maxlength="20"
-autocomplete="off"
-autocapitalize="none"
-spellcheck="false"
->
-
-<div id="usernameStatus" class="hint">
-3–20 characters. Letters, numbers and underscores.
-</div>
-
+<label class="pf-label" for="usernameInput">Username</label>
+<input id="usernameInput" placeholder="Enter username" maxlength="20" autocomplete="off" autocapitalize="none" spellcheck="false">
+<div id="usernameStatus" class="hint">3–20 letters, numbers or _</div>
 <input id="displayNameInput" type="hidden" value="">
 <input id="bioInput" type="hidden" value="">
-
 <button id="registerUsername" disabled>Register username</button>
-
 <div id="registrationStatus" class="toast"></div>
 </div>
 
 <div class="section public-id-section">
-<h3>Public ID (npub)</h3>
-<div class="full" id="npub"></div>
-<div class="two">
-<button id="copyNpub">Copy public ID</button>
-<button id="share" class="alt">Share invite</button>
+<div class="pf-label">Public ID</div>
+<div class="pf-idrow">
+<div class="pf-npub" id="npub"></div>
+<button id="copyNpub" class="pf-icon" type="button" aria-label="Copy public ID" title="Copy public ID"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg></button>
 </div>
-</div>
-
-<!-- PRIVATE KEY -->
-
-<div class="section">
-<h3>Private-key backup</h3>
-
-<div class="hint">
-Keep your private key secret. Anyone who obtains it can control your account.
+<button class="alt" id="share" type="button">Share invite</button>
 </div>
 
-<button class="alt" id="revealKey">Show private key</button>
+<details class="pf-sec">
+<summary><span>Backup &amp; restore</span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+<div class="pf-sec-body">
+<button class="alt" id="revealKey" type="button">Show private key</button>
 <div class="full hidden" id="nsec"></div>
-
 <div class="two">
-<button class="alt hidden" id="copyNsec">Copy secret</button>
-<button class="alt" id="downloadBackup">Download backup</button>
+<button class="alt hidden" id="copyNsec" type="button">Copy secret</button>
+<button class="alt" id="downloadBackup" type="button">Download backup</button>
 </div>
+<div class="pf-sep"></div>
+<input id="restoreKey" placeholder="Paste nsec to restore" autocomplete="off" autocapitalize="off">
+<button class="alt" id="restore" type="button">Restore from secret key</button>
+<div class="hint">Never share your private key. Restoring replaces this device’s identity.</div>
 </div>
-
-<!-- RESTORE -->
-
-<div class="section">
-<h3>Restore identity</h3>
-
-<input
-id="restoreKey"
-placeholder="Paste your nsec or 64-character secret key"
-autocomplete="off"
-autocapitalize="off"
->
-
-<button class="alt" id="restore">Restore from secret key</button>
-
-<div class="hint">
-Restoring replaces the identity on this device.
-</div>
-</div>
-
-<div class="section">
-<h3>About encryption</h3>
-<div class="hint">
-This version uses Nostr NIP-04 encrypted direct messages. It is an older Nostr encryption format.
-</div>
-</div>
+</details>
 
 <div class="toast" id="toast"></div>
-
-<button class="alt" id="close">Close</button>
 
 </div>
 </div>

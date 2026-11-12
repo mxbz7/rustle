@@ -75,3 +75,29 @@ Tested (headless Chromium via Playwright, 360/390/430px, seeded local data):
  of old events, unverified contact shows no badge, zero page errors.
 NOT tested: real Android device, hardware back button, live Nostr relays,
  Supabase, encrypted photo transfer, installed-PWA service-worker update.
+
+
+==================================================================
+UPDATE: COMPACT "MY PROFILE" SHEET
+==================================================================
+Files changed: index.html, style.css, app.js (2 small edits), sw.js (cache v26 -> v27)
+
+- Header is now one row: avatar, display name + verified badge + a small quiet
+  pencil icon (no filled circle), @username, and a close (X) button.
+- Username card: label, input, one-line status, button. Long explanation removed.
+- Public ID card: single-line truncated npub with a copy icon, plus Share invite.
+- Private-key backup and Restore identity are tucked into one collapsible
+  "Backup & restore" row, with short wording.
+- Removed the outdated "About encryption / NIP-04" card.
+- Removed the duplicate "Registered username: @name" line.
+- Copy feedback is a small pill toast instead of shifting the layout.
+- The verified-badge card opens downward inside this header.
+- All element IDs and handlers were kept, so username registration, display-name
+  edit, copy/share, private-key reveal, backup download and restore work as before.
+
+Tested (headless Chromium, 360/390/430px, plus a very long display name):
+ no horizontal overflow, badge/pencil aligned with name, copy puts the full npub
+ on the clipboard, backup row expands and reveals the nsec, edit dialog opens,
+ close works, zero page errors, earlier chat/menu features still pass.
+NOT tested on a real Android device. Username registration, restore and backup
+ download were not exercised end to end (they need Supabase / file handling).
