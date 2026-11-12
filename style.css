@@ -444,3 +444,5 @@ body{background:#16132a}
 .m .shared-image{display:block;max-width:100%;max-height:420px;object-fit:contain;border-radius:12px;background:#171421}
 .m .image-caption{font-size:13px;overflow-wrap:anywhere;padding:5px 4px 0}
 .m .image-download{display:inline-block;color:#fff;font-size:12px;text-decoration:underline;margin:5px 4px 0}
+.m .image-ph{padding:14px 10px;text-align:center;font-size:13px;color:var(--mut)}
+.m .image-ph .chip{margin-top:0}

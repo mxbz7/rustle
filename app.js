@@ -13,6 +13,7 @@ const SUPABASE_KEY="sb_publishable_USOxmbW2mxSpQF_3mzxAGw_pt4OuISG";
 const CHECK_FUNCTION="check-username";
 const REGISTER_FUNCTION="register-username";
 const SEARCH_FUNCTION="quick-worker";
+const TURN_FUNCTION="turn-credentials";
 
 /* NOSTR RELAYS */
 
@@ -24,6 +25,9 @@ const RELAYS=[
 ];
 
 const KEY="whisper-v4";
+
+/* Ephemeral Nostr event used only to exchange (encrypted) connection offers. */
+const SIGNAL_KIND=25050;
 
 const db={
 read(){
@@ -72,6 +76,12 @@ data.contacts=data.contacts||{};
 data.messages=data.messages||{};
 data.unread=data.unread||{};
 data.profiles=data.profiles||{};
+
+/* An image that was mid-transfer when the app was closed cannot still be sending. */
+
+Object.values(data.messages).forEach(list=>{
+ if(Array.isArray(list))list.forEach(m=>{if(m&&m.image&&m.me&&m.st==="sending")m.st="failed";});
+});
 
 const hex=b=>Array.from(b,x=>x.toString(16).padStart(2,"0")).join("");
 
@@ -628,7 +638,7 @@ sub=pool.subscribeMany(
 RELAYS,
 [
 {kinds:[1059],"#p":[me],limit:500},
-{kinds:[SIGNAL_KIND],"#p":[me],since:Math.floor(Date.now()/1000)-300,limit:100},
+{kinds:[SIGNAL_KIND],"#p":[me],since:Math.floor(Date.now()/1000)-120,limit:100},
 {kinds:[4],"#p":[me],limit:500},
 {kinds:[4],authors:[me],limit:500}
 ],
@@ -661,149 +671,638 @@ const MAX_MESSAGE=4000;
 const wrapSeen=new Set();
 let reauthTimer=null;
 
-/* Image bytes travel over a direct WebRTC data channel. Relays carry encrypted
-   connection signaling only; image content is never published to a relay. */
-const IMAGE_MAX_BYTES=50*1024*1024, IMAGE_CHUNK=16*1024, SIGNAL_KIND=25050;
+/* ------------------------------------------------------------------
+   IMAGES - direct device-to-device transfer
+   The photo is encrypted on your phone with a random AES-256-GCM key and
+   sent over a WebRTC data channel straight to your friend's phone. Nothing
+   is uploaded to any server. A TURN relay (credentials come from your
+   Supabase function) only forwards already-encrypted packets so the
+   connection also works between two mobile-data (4G/5G) networks.
+   Nostr relays carry only the encrypted connection offer/answer.
+   Both people must have RUSTLE open on screen during the transfer.
+------------------------------------------------------------------- */
+
+const IMAGE_MAX_BYTES=30*1024*1024;
+const IMAGE_CHUNK=16*1024;
+const IMAGE_TYPES=["image/jpeg","image/png"];
+const busyImages=new Set();
+const imgState=new Map();
+const urlCache=new Map();
 const rtcPeers=new Map();
+const acks=new Map();
+const signalSeen=new Set();
+const answering=new Set();
+let iceCache=null;
+
 const imageDbPromise=new Promise((resolve,reject)=>{
  const req=indexedDB.open("rustle-local-files-v1",1);
  req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains("images"))req.result.createObjectStore("images")};
- req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);
+ req.onsuccess=()=>resolve(req.result);
+ req.onerror=()=>reject(req.error);
 });
+imageDbPromise.catch(()=>{});
+
 async function putLocalImage(id,blob){
- const db=await imageDbPromise;
+ const idb=await imageDbPromise;
  return new Promise((resolve,reject)=>{
-  const tx=db.transaction("images","readwrite");tx.objectStore("images").put(blob,id);
-  tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);
+  const tx=idb.transaction("images","readwrite");
+  tx.objectStore("images").put(blob,id);
+  tx.oncomplete=()=>resolve();
+  tx.onerror=()=>reject(tx.error);
+  tx.onabort=()=>reject(tx.error||Error("Storage write was aborted."));
  });
 }
+
 async function getLocalImage(id){
- const db=await imageDbPromise;
+ const idb=await imageDbPromise;
  return new Promise((resolve,reject)=>{
-  const req=db.transaction("images","readonly").objectStore("images").get(id);
-  req.onsuccess=()=>resolve(req.result||null);req.onerror=()=>reject(req.error);
+  const req=idb.transaction("images","readonly").objectStore("images").get(id);
+  req.onsuccess=()=>resolve(req.result||null);
+  req.onerror=()=>reject(req.error);
  });
 }
+
+async function deleteLocalImage(id){
+ const idb=await imageDbPromise;
+ return new Promise((resolve,reject)=>{
+  const tx=idb.transaction("images","readwrite");
+  tx.objectStore("images").delete(id);
+  tx.oncomplete=()=>resolve();
+  tx.onerror=()=>reject(tx.error);
+ });
+}
+
 function b64(bytes){
- let s="";for(let i=0;i<bytes.length;i+=0x8000)s+=String.fromCharCode(...bytes.subarray(i,i+0x8000));
+ let s="";
+ for(let i=0;i<bytes.length;i+=0x8000)s+=String.fromCharCode.apply(null,bytes.subarray(i,i+0x8000));
  return btoa(s);
 }
+
 function unb64(s){
  const raw=atob(s),out=new Uint8Array(raw.length);
  for(let i=0;i<raw.length;i++)out[i]=raw.charCodeAt(i);
  return out;
 }
-async function sendSignal(peer,payload){
- const content=NT.nip44.encrypt(JSON.stringify(payload),convKey(sk,peer));
- const event=NT.finalizeEvent({kind:SIGNAL_KIND,created_at:Math.floor(Date.now()/1000),tags:[["p",peer]],content},sk);
- const results=await Promise.allSettled(pool.publish(RELAYS,event));
- if(!results.some(x=>x.status==="fulfilled"))throw Error("Could not deliver encrypted connection signal through relays.");
+
+function sniffType(b){
+ if(b.length>=3&&b[0]===0xFF&&b[1]===0xD8&&b[2]===0xFF)return"image/jpeg";
+ if(b.length>=8&&b[0]===0x89&&b[1]===0x50&&b[2]===0x4E&&b[3]===0x47&&b[4]===0x0D&&b[5]===0x0A&&b[6]===0x1A&&b[7]===0x0A)return"image/png";
+ return null;
 }
-async function receiveSignal(ev){
- if(!ev||ev.kind!==SIGNAL_KIND||!NT||!sk||ev.pubkey===me)return;
- if(!(ev.tags||[]).some(t=>t[0]==="p"&&t[1]===me))return;
+
+function cleanName(n){
+ return String(n||"image").replace(/[\u0000-\u001f<>:"\/\\|?*]/g,"_").slice(0,120)||"image";
+}
+
+function objectUrl(rid,blob){
+ let u=urlCache.get(rid);
+ if(!u){u=URL.createObjectURL(blob);urlCache.set(rid,u);}
+ return u;
+}
+
+function setProg(rid,text){
+ if(text)imgState.set(rid,text);else imgState.delete(rid);
+ document.querySelectorAll('.image-caption[data-rid="'+rid+'"]').forEach(n=>{n.textContent=text||n.dataset.base;});
+}
+
+function refresh(peer){
+ renderList();
+ if(current===peer)renderThread();
+}
+
+async function aesEncrypt(blob,keyB64,ivB64){
+ const key=await crypto.subtle.importKey("raw",unb64(keyB64),{name:"AES-GCM"},false,["encrypt"]);
+ const plain=await blob.arrayBuffer();
+ return new Uint8Array(await crypto.subtle.encrypt({name:"AES-GCM",iv:unb64(ivB64)},key,plain));
+}
+
+async function aesDecrypt(bytes,keyB64,ivB64){
+ const key=await crypto.subtle.importKey("raw",unb64(keyB64),{name:"AES-GCM"},false,["decrypt"]);
+ return new Uint8Array(await crypto.subtle.decrypt({name:"AES-GCM",iv:unb64(ivB64)},key,bytes));
+}
+
+function withTimeout(p,ms,message){
+ return new Promise((resolve,reject)=>{
+  const t=setTimeout(()=>reject(Error(message)),ms);
+  p.then(v=>{clearTimeout(t);resolve(v);},e=>{clearTimeout(t);reject(e);});
+ });
+}
+
+/* Waits for whichever finishes first, without leaving an unhandled rejection behind. */
+
+function raceOf(a,b){
+ a.catch(()=>{});
+ b.catch(()=>{});
+ return Promise.race([a,b]);
+}
+
+async function drain(channel){
+ let waited=0;
+ while(channel.bufferedAmount>1024*1024){
+  if(channel.readyState!=="open")throw Error("Connection closed during the transfer.");
+  await new Promise(r=>setTimeout(r,40));
+  waited+=40;
+  if(waited>60000)throw Error("The transfer stalled.");
+ }
+ if(channel.readyState!=="open")throw Error("Connection closed during the transfer.");
+}
+
+/* TURN credentials come from the Supabase function so the real key never reaches the browser. */
+
+async function getIceServers(){
+
+ if(iceCache&&Date.now()<iceCache.until)return iceCache.list;
+
+ let list=[{urls:"stun:stun.l.google.com:19302"}];
+ let ttl=60*1000;
+
  try{
-  const payload=JSON.parse(NT.nip44.decrypt(ev.content,convKey(sk,ev.pubkey)));
-  if(!payload||payload.v!==1||!["offer","answer"].includes(payload.type))return;
-  if(payload.type==="offer")await answerImagePeer(ev.pubkey,payload.sdp);
-  else{
-   const pc=rtcPeers.get(ev.pubkey)?.pc;
-   if(pc&&pc.signalingState==="have-local-offer")await pc.setRemoteDescription(payload.sdp);
+  const r=await withTimeout(supabaseRequest(TURN_FUNCTION,{}),8000,"TURN lookup timed out.");
+  const extra=(Array.isArray(r.iceServers)?r.iceServers:[]).filter(s=>
+   s&&typeof s==="object"&&(typeof s.urls==="string"||Array.isArray(s.urls))
+  );
+  if(extra.length){
+   list=list.concat(extra);
+   ttl=10*60*1000;
   }
- }catch(e){console.warn("RUSTLE image signaling:",e);}
+ }catch(e){
+  console.warn("RUSTLE TURN credentials unavailable:",e);
+ }
+
+ iceCache={list,until:Date.now()+ttl};
+
+ return list;
+
 }
+
 function waitIceComplete(pc){
  if(pc.iceGatheringState==="complete")return Promise.resolve();
  return new Promise(resolve=>{
   let done=false;
-  const finish=()=>{if(done)return;done=true;clearTimeout(timer);pc.removeEventListener("icegatheringstatechange",check);resolve();};
+  const finish=()=>{
+   if(done)return;
+   done=true;
+   clearTimeout(timer);
+   pc.removeEventListener("icegatheringstatechange",check);
+   resolve();
+  };
   const check=()=>{if(pc.iceGatheringState==="complete")finish();};
-  const timer=setTimeout(finish,10000);pc.addEventListener("icegatheringstatechange",check);
+  const timer=setTimeout(finish,10000);
+  pc.addEventListener("icegatheringstatechange",check);
  });
 }
-function makeRtc(peer){
- const pc=new RTCPeerConnection({iceServers:[{urls:"stun:stun.l.google.com:19302"}]});
- const state={pc,channel:null,receiving:null};rtcPeers.set(peer,state);
- pc.onconnectionstatechange=()=>{if(["failed","closed"].includes(pc.connectionState)&&rtcPeers.get(peer)===state)rtcPeers.delete(peer);};
- pc.ondatachannel=e=>attachImageChannel(peer,state,e.channel);
- return state;
+
+function closePeer(peer){
+ const st=rtcPeers.get(peer);
+ rtcPeers.delete(peer);
+ if(!st)return;
+ try{if(st.channel)st.channel.close();}catch{}
+ try{st.pc.close();}catch{}
 }
-function attachImageChannel(peer,state,channel){
- state.channel=channel;channel.binaryType="arraybuffer";
- channel.onmessage=async e=>{
-  try{
-   if(typeof e.data==="string"){
-    const m=JSON.parse(e.data);
-    if(m.type==="image-start"){
-     if(!Number.isInteger(m.size)||m.size<17||m.size>IMAGE_MAX_BYTES+16||!["image/jpeg","image/png"].includes(m.mime))throw Error("Invalid image transfer.");
-     state.receiving={id:m.id,name:String(m.name||"image").slice(0,120),mime:m.mime,size:m.size,key:unb64(m.key),iv:unb64(m.iv),chunks:[],received:0};
-     return;
-    }
-    if(m.type==="image-end"&&state.receiving){
-     const r=state.receiving;state.receiving=null;
-     if(r.received!==r.size)throw Error("Image transfer was incomplete.");
-     const encrypted=new Uint8Array(r.size);let offset=0;
-     for(const chunk of r.chunks){const bytes=new Uint8Array(chunk);encrypted.set(bytes,offset);offset+=bytes.length;}
-     const cryptoKey=await crypto.subtle.importKey("raw",r.key,{name:"AES-GCM"},false,["decrypt"]);
-     const plain=await crypto.subtle.decrypt({name:"AES-GCM",iv:r.iv},cryptoKey,encrypted);
-     const blob=new Blob([plain],{type:r.mime});await putLocalImage(r.id,blob);
-     insertMessage(peer,{id:r.id,me:false,text:"",t:Math.floor(Date.now()/1000),st:"ok",image:{id:r.id,name:r.name,type:r.mime,size:blob.size}});
-     toast("Image received and saved on this device.");
-    }
-    return;
-   }
-   const r=state.receiving;if(!r)return;
-   r.chunks.push(e.data);r.received+=e.data.byteLength;
-   if(r.received>r.size){state.receiving=null;throw Error("Image exceeds expected size.");}
-  }catch(err){console.error("RUSTLE image receive:",err);toast(err.message||"Image receive failed.");}
- };
- channel.onopen=()=>toast("Secure direct connection ready.");
- channel.onclose=()=>{if(rtcPeers.get(peer)===state)rtcPeers.delete(peer);};
-}
-async function answerImagePeer(peer,offer){
- let state=rtcPeers.get(peer);if(state&&state.pc.signalingState!=="stable")return;
- state=makeRtc(peer);await state.pc.setRemoteDescription(offer);
- const answer=await state.pc.createAnswer();await state.pc.setLocalDescription(answer);
- await waitIceComplete(state.pc);await sendSignal(peer,{v:1,type:"answer",sdp:state.pc.localDescription});
-}
-async function openImageChannel(peer){
- let state=rtcPeers.get(peer);
- if(state?.channel?.readyState==="open")return state.channel;
- if(state){try{state.pc.close()}catch{}rtcPeers.delete(peer);}
- state=makeRtc(peer);
- const channel=state.pc.createDataChannel("rustle-images",{ordered:true});attachImageChannel(peer,state,channel);
- const offer=await state.pc.createOffer();await state.pc.setLocalDescription(offer);
- await waitIceComplete(state.pc);await sendSignal(peer,{v:1,type:"offer",sdp:state.pc.localDescription});
- await new Promise((resolve,reject)=>{
-  const timer=setTimeout(()=>reject(Error("Direct connection timed out. Both users must be online and reachable.")),30000);
-  channel.addEventListener("open",()=>{clearTimeout(timer);resolve();},{once:true});
-  channel.addEventListener("error",()=>{clearTimeout(timer);reject(Error("Direct connection failed."));},{once:true});
- });
- return channel;
-}
-async function sendImage(file){
- if(!current||!NT||!pool)return;
- if(!["image/jpeg","image/png"].includes(file.type)){toast("Choose a JPG or PNG image.");return;}
- if(file.size<1||file.size>IMAGE_MAX_BYTES){toast("Image must be 50 MB or smaller.");return;}
- const peer=current,id=hex(crypto.getRandomValues(new Uint8Array(16))),t=Math.floor(Date.now()/1000);
- insertMessage(peer,{id,me:true,text:"",t,st:"sending",image:{id,name:file.name,type:file.type,size:file.size}});
- try{
-  const channel=await openImageChannel(peer),raw=await file.arrayBuffer();
-  const keyBytes=crypto.getRandomValues(new Uint8Array(32)),iv=crypto.getRandomValues(new Uint8Array(12));
-  const key=await crypto.subtle.importKey("raw",keyBytes,{name:"AES-GCM"},false,["encrypt"]);
-  const encrypted=new Uint8Array(await crypto.subtle.encrypt({name:"AES-GCM",iv},key,raw));
-  channel.send(JSON.stringify({type:"image-start",id,name:file.name,mime:file.type,size:encrypted.length,key:b64(keyBytes),iv:b64(iv)}));
-  for(let offset=0;offset<encrypted.length;offset+=IMAGE_CHUNK){
-   while(channel.bufferedAmount>512*1024)await new Promise(r=>setTimeout(r,30));
-   channel.send(encrypted.slice(offset,Math.min(offset+IMAGE_CHUNK,encrypted.length)));
+
+/* Called when a connection ends by itself. */
+
+function closePeerIf(peer,st,message){
+ if(rtcPeers.get(peer)!==st)return;
+ rtcPeers.delete(peer);
+ try{st.pc.close();}catch{}
+ for(const [id,w] of acks){
+  if(w.peer===peer){
+   acks.delete(id);
+   w.reject(Error(message||"The connection closed before your friend confirmed the image."));
   }
-  channel.send(JSON.stringify({type:"image-end"}));await putLocalImage(id,file);
-  const m=getMessages(peer).find(x=>x.id===id);if(m)m.st="ok";
-  save();renderThread();toast("Original image sent directly.");
- }catch(e){
-  const m=getMessages(peer).find(x=>x.id===id);if(m)m.st="failed";
-  save();renderThread();toast(e.message||"Image transfer failed.");
  }
+}
+
+function makeRtc(peer,iceServers){
+ const pc=new RTCPeerConnection({iceServers});
+ const st={pc,channel:null,receiving:null,role:"",sid:"",relay:false,onAnswer:null,onOpen:null,onFail:null};
+ rtcPeers.set(peer,st);
+ pc.onconnectionstatechange=()=>{
+  if(pc.connectionState==="failed"){
+   if(st.onFail)st.onFail(Error("The direct connection failed."+(st.relay?"":" The relay server was unavailable, so some mobile networks cannot connect.")));
+   closePeerIf(peer,st,"The direct connection failed.");
+  }else if(pc.connectionState==="closed"){
+   closePeerIf(peer,st);
+  }
+ };
+ pc.ondatachannel=e=>attachImageChannel(peer,st,e.channel);
+ return st;
+}
+
+async function sendSignal(peer,payload){
+ const content=NT.nip44.encrypt(JSON.stringify(payload),convKey(sk,peer));
+ const event=NT.finalizeEvent({kind:SIGNAL_KIND,created_at:Math.floor(Date.now()/1000),tags:[["p",peer]],content},sk);
+ const results=await Promise.allSettled(pool.publish(RELAYS,event));
+ if(!results.some(x=>x.status==="fulfilled"))throw Error("Could not reach any relay to start the connection. Check your internet.");
+}
+
+async function receiveSignal(ev){
+
+ if(!ev||ev.kind!==SIGNAL_KIND||!NT||!sk||ev.pubkey===me)return;
+
+ if(signalSeen.has(ev.id))return;
+ signalSeen.add(ev.id);
+
+ if(Math.abs(Date.now()/1000-ev.created_at)>120)return;
+
+ if(!(ev.tags||[]).some(t=>t[0]==="p"&&t[1]===me))return;
+
+ /* only people already in my chat list may open a connection to this phone */
+
+ if(!data.contacts[ev.pubkey])return;
+
+ try{
+
+  if(!NT.verifyEvent(ev))return;
+
+  const payload=JSON.parse(NT.nip44.decrypt(ev.content,convKey(sk,ev.pubkey)));
+
+  if(!payload||payload.v!==1||typeof payload.sid!=="string"||!/^[0-9a-f]{16}$/.test(payload.sid))return;
+
+  if(payload.type==="offer"){
+   await answerImagePeer(ev.pubkey,payload.sid,payload.sdp);
+  }else if(payload.type==="answer"){
+   const st=rtcPeers.get(ev.pubkey);
+   if(st&&st.role==="offerer"&&st.sid===payload.sid&&st.pc.signalingState==="have-local-offer"){
+    await st.pc.setRemoteDescription(payload.sdp);
+    if(st.onAnswer)st.onAnswer();
+   }
+  }
+
+ }catch(e){
+  console.warn("RUSTLE image signaling:",e);
+ }
+
+}
+
+async function answerImagePeer(peer,sid,offer){
+
+ const old=rtcPeers.get(peer);
+
+ if(old&&old.sid===sid)return;
+
+ if(answering.has(sid))return;
+
+ /* both sides offered at the same moment: the lower key keeps its own offer */
+
+ if(old&&old.role==="offerer"&&old.pc.signalingState==="have-local-offer"&&me<peer)return;
+
+ answering.add(sid);
+
+ try{
+
+  closePeer(peer);
+
+  const iceServers=await getIceServers();
+
+  const st=makeRtc(peer,iceServers);
+  st.role="answerer";
+  st.sid=sid;
+
+  await st.pc.setRemoteDescription(offer);
+
+  const answer=await st.pc.createAnswer();
+  await st.pc.setLocalDescription(answer);
+
+  await waitIceComplete(st.pc);
+
+  st.relay=/ typ relay/.test(st.pc.localDescription.sdp);
+
+  await sendSignal(peer,{v:1,type:"answer",sid,sdp:st.pc.localDescription});
+
+ }finally{
+
+  setTimeout(()=>answering.delete(sid),30000);
+
+ }
+
+}
+
+function attachImageChannel(peer,st,channel){
+
+ st.channel=channel;
+ channel.binaryType="arraybuffer";
+
+ channel.onopen=()=>{if(st.onOpen)st.onOpen();};
+
+ channel.onclose=()=>closePeerIf(peer,st);
+
+ channel.onmessage=e=>{
+  handleChannelMessage(peer,st,e).catch(err=>{
+   console.error("RUSTLE image receive:",err);
+   st.receiving=null;
+  });
+ };
+
+}
+
+async function handleChannelMessage(peer,st,e){
+
+ if(typeof e.data==="string"){
+
+  const m=JSON.parse(e.data);
+
+  if(m.type==="image-ok"){
+   const w=acks.get(m.id);
+   if(w){acks.delete(m.id);w.resolve();}
+   return;
+  }
+
+  if(m.type==="image-err"){
+   const w=acks.get(m.id);
+   if(w){acks.delete(m.id);w.reject(Error(String(m.message||"Your friend could not receive the image.").slice(0,160)));}
+   return;
+  }
+
+  if(m.type==="image-start"){
+
+   if(!data.contacts[peer])throw Error("Unknown sender.");
+
+   if(!/^[0-9a-f]{32}$/.test(m.id||""))throw Error("Invalid image transfer.");
+
+   if(!Number.isInteger(m.size)||m.size<17||m.size>IMAGE_MAX_BYTES+16)throw Error("Invalid image size.");
+
+   if(typeof m.key!=="string"||typeof m.iv!=="string"||unb64(m.key).length!==32||unb64(m.iv).length!==12)throw Error("Invalid image key.");
+
+   st.receiving={id:m.id,name:cleanName(m.name),size:m.size,key:m.key,iv:m.iv,chunks:[],received:0};
+
+   return;
+
+  }
+
+  if(m.type==="image-end"){
+
+   const r=st.receiving;
+
+   if(!r||r.id!==m.id)return;
+
+   st.receiving=null;
+
+   try{
+
+    if(r.received!==r.size)throw Error("The image arrived incomplete.");
+
+    if(!(await getLocalImage(r.id))){
+
+     const enc=new Uint8Array(r.size);
+     let off=0;
+     for(const c of r.chunks){const b=new Uint8Array(c);enc.set(b,off);off+=b.length;}
+     r.chunks=null;
+
+     let plain;
+
+     try{
+      plain=await aesDecrypt(enc,r.key,r.iv);
+     }catch{
+      throw Error("The image could not be decrypted.");
+     }
+
+     const type=sniffType(plain);
+
+     if(!type)throw Error("The file is not a JPG or PNG image.");
+
+     await putLocalImage(r.id,new Blob([plain],{type}));
+
+     insertMessage(peer,{
+      id:r.id,
+      me:false,
+      text:"📷 Photo",
+      t:Math.floor(Date.now()/1000),
+      st:"ok",
+      image:{rid:r.id,name:r.name,type,size:plain.length}
+     });
+
+     if(peer!==current){
+      data.unread[peer]=(data.unread[peer]||0)+1;
+      save();
+      renderList();
+     }
+
+    }
+
+    st.channel.send(JSON.stringify({type:"image-ok",id:r.id}));
+
+   }catch(err){
+
+    try{st.channel.send(JSON.stringify({type:"image-err",id:r.id,message:err.message||"Could not receive the image."}));}catch{}
+
+    throw err;
+
+   }
+
+   return;
+
+  }
+
+  return;
+
+ }
+
+ const r=st.receiving;
+
+ if(!r)return;
+
+ r.chunks.push(e.data);
+ r.received+=e.data.byteLength;
+
+ if(r.received>r.size){
+  st.receiving=null;
+  throw Error("Image exceeds the expected size.");
+ }
+
+}
+
+async function openImageChannel(peer,rid){
+
+ const cur=rtcPeers.get(peer);
+
+ if(cur&&cur.channel&&cur.channel.readyState==="open"&&cur.pc.connectionState==="connected")return cur.channel;
+
+ closePeer(peer);
+
+ setProg(rid,"Preparing secure connection…");
+
+ const iceServers=await getIceServers();
+
+ const st=makeRtc(peer,iceServers);
+ st.role="offerer";
+ st.sid=hex(crypto.getRandomValues(new Uint8Array(8)));
+
+ const channel=st.pc.createDataChannel("rustle-images",{ordered:true});
+
+ attachImageChannel(peer,st,channel);
+
+ const answered=new Promise(resolve=>{st.onAnswer=resolve;});
+ const opened=new Promise(resolve=>{st.onOpen=resolve;if(channel.readyState==="open")resolve();});
+ const failed=new Promise((_,reject)=>{st.onFail=reject;});
+
+ const offer=await st.pc.createOffer();
+ await st.pc.setLocalDescription(offer);
+
+ setProg(rid,"Connecting…");
+
+ await waitIceComplete(st.pc);
+
+ st.relay=/ typ relay/.test(st.pc.localDescription.sdp);
+
+ await sendSignal(peer,{v:1,type:"offer",sid:st.sid,sdp:st.pc.localDescription});
+
+ setProg(rid,"Waiting for your friend's app…");
+
+ await raceOf(
+  withTimeout(answered,30000,"No answer. Your friend must have RUSTLE open on screen. Ask them to open it, then tap Retry."),
+  failed
+ );
+
+ setProg(rid,"Connecting directly…");
+
+ await raceOf(
+  withTimeout(opened,40000,"Could not connect directly."+(st.relay?" Try again, or switch networks.":" The relay server was unavailable, so some mobile networks cannot connect.")),
+  failed
+ );
+
+ return channel;
+
+}
+
+async function sendImage(file){
+
+ if(!current||!NT||!pool)return;
+
+ if(file.size<1||file.size>IMAGE_MAX_BYTES){
+  status("Image must be 30 MB or smaller.");
+  toast("Image must be 30 MB or smaller.");
+  return;
+ }
+
+ let type=null;
+
+ try{
+  type=sniffType(new Uint8Array(await file.slice(0,8).arrayBuffer()));
+ }catch{}
+
+ if(!type){
+  status("Choose a JPG or PNG image.");
+  toast("Choose a JPG or PNG image.");
+  return;
+ }
+
+ const peer=current;
+ const rid=hex(crypto.getRandomValues(new Uint8Array(16)));
+
+ try{
+  await putLocalImage(rid,file);
+ }catch{
+  status("Could not store the image on this device.");
+  return;
+ }
+
+ insertMessage(peer,{
+  id:rid,
+  me:true,
+  text:"📷 Photo",
+  t:Math.floor(Date.now()/1000),
+  st:"sending",
+  image:{rid,name:cleanName(file.name),type,size:file.size}
+ });
+
+ transferImage(peer,rid);
+
+}
+
+/* Connects, encrypts, sends and waits until the other phone confirms it saved the image.
+   Safe to call again (Retry) after a failure. */
+
+async function transferImage(peer,msgId){
+
+ const first=getMessages(peer).find(x=>x.id===msgId);
+
+ if(!first||!first.image||!NT||!pool)return;
+
+ const rid=first.image.rid||first.image.id;
+
+ if(busyImages.has(rid))return;
+
+ busyImages.add(rid);
+
+ let failText="";
+
+ try{
+
+  first.st="sending";
+  save();
+  refresh(peer);
+
+  const blob=await getLocalImage(rid);
+
+  if(!blob)throw Error("The original image is no longer stored on this device.");
+
+  const channel=await openImageChannel(peer,rid);
+
+  setProg(rid,"Encrypting…");
+
+  const key=b64(crypto.getRandomValues(new Uint8Array(32)));
+  const iv=b64(crypto.getRandomValues(new Uint8Array(12)));
+
+  const enc=await aesEncrypt(blob,key,iv);
+
+  const ack=new Promise((resolve,reject)=>acks.set(rid,{resolve,reject,peer}));
+  ack.catch(()=>{});
+
+  channel.send(JSON.stringify({
+   type:"image-start",
+   id:rid,
+   name:first.image.name,
+   size:enc.length,
+   key,
+   iv
+  }));
+
+  for(let off=0;off<enc.length;off+=IMAGE_CHUNK){
+   await drain(channel);
+   channel.send(enc.slice(off,Math.min(off+IMAGE_CHUNK,enc.length)));
+   if((off/IMAGE_CHUNK)%64===0)setProg(rid,"Sending "+Math.round(off/enc.length*100)+"%");
+  }
+
+  channel.send(JSON.stringify({type:"image-end",id:rid}));
+
+  setProg(rid,"Waiting for confirmation…");
+
+  await withTimeout(ack,60000,"Your friend's phone did not confirm the image. Tap Retry.");
+
+  const m=getMessages(peer).find(x=>x.id===msgId);
+
+  if(m){
+   m.st="ok";
+   save();
+  }
+
+ }catch(e){
+
+  failText=e.message||"Image transfer failed.";
+
+  acks.delete(rid);
+
+  closePeer(peer);
+
+  const m=getMessages(peer).find(x=>x.id===msgId);
+
+  if(m){
+   m.st="failed";
+   save();
+  }
+
+ }finally{
+
+  busyImages.delete(rid);
+
+  setProg(rid,failText?"⚠ "+failText:"");
+
+  refresh(peer);
+
+ }
+
 }
 
 function randomPast(){
@@ -1601,6 +2100,8 @@ $("txt").focus();
 
 function renderThread(){
 
+if(!current)return;
+
 const box=$("msgs");
 
 box.textContent="";
@@ -1664,16 +2165,58 @@ const d=document.createElement("div");
 d.className="m"+(m.me?" me":"")+(m.image?" image-message":"");
 
 if(m.image){
- const img=document.createElement("img");img.className="shared-image";img.alt=m.image.name||"Shared image";img.loading="lazy";d.append(img);
- getLocalImage(m.image.id).then(blob=>{if(blob&&img.isConnected)img.src=URL.createObjectURL(blob);}).catch(()=>{});
- const caption=document.createElement("div");caption.className="image-caption";
- caption.textContent=m.image.name+" · "+(m.image.size/1024/1024).toFixed(2)+" MB";d.append(caption);
- const download=document.createElement("a");download.className="image-download";download.textContent="Save original";download.href="#";
+
+ const im=m.image;
+ const rid=im.rid||im.id;
+
+ const img=document.createElement("img");
+ img.className="shared-image hidden";
+ img.alt=im.name||"Shared image";
+
+ const holder=document.createElement("div");
+ holder.className="image-ph";
+ holder.textContent="Loading…";
+
+ d.append(img,holder);
+
+ const base=(im.name||"image")+" · "+(im.size/1024/1024).toFixed(2)+" MB";
+ const caption=document.createElement("div");
+ caption.className="image-caption";
+ caption.dataset.rid=rid;
+ caption.dataset.base=base;
+ caption.textContent=imgState.get(rid)||base;
+ d.append(caption);
+
+ const download=document.createElement("a");
+ download.className="image-download hidden";
+ download.textContent="Save original";
+ download.href="#";
  download.onclick=async e=>{
-  e.preventDefault();const blob=await getLocalImage(m.image.id);
-  if(!blob){toast("Original image is not available on this device.");return;}
-  const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=m.image.name||"rustle-image";a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);
- };d.append(download);
+  e.preventDefault();
+  try{
+   const blob=await getLocalImage(rid);
+   if(!blob){toast("Original image is not available on this device.");return;}
+   const url=URL.createObjectURL(blob),a=document.createElement("a");
+   a.href=url;a.download=im.name||"rustle-image";a.click();
+   setTimeout(()=>URL.revokeObjectURL(url),30000);
+  }catch{}
+ };
+ d.append(download);
+
+ getLocalImage(rid).then(blob=>{
+  if(!d.isConnected)return;
+  if(blob){
+   img.src=objectUrl(rid,blob);
+   img.classList.remove("hidden");
+   download.classList.remove("hidden");
+   holder.remove();
+  }else{
+   holder.textContent="This image is not stored on this device.";
+  }
+ }).catch(()=>{
+  if(d.isConnected)holder.textContent="Could not read this device's image storage.";
+ });
+
 }else{d.textContent=m.text;}
 
 const meta=document.createElement("small");
@@ -1691,7 +2234,10 @@ const b=document.createElement("button");
 b.className="retry";
 b.textContent="Retry";
 
-b.onclick=()=>sendMessage(m.id);
+b.onclick=()=>{
+ if(m.image)transferImage(current,m.id);
+ else sendMessage(m.id);
+};
 
 meta.append(b);
 
@@ -1813,6 +2359,12 @@ closeContactSheet();
 }
 
 function removeContact(){
+
+(data.messages[current]||[]).forEach(m=>{
+ if(m.image)deleteLocalImage(m.image.rid||m.image.id).catch(()=>{});
+});
+
+closePeer(current);
 
 delete data.contacts[current];
 delete data.messages[current];
