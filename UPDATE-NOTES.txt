@@ -119,3 +119,32 @@ Tested (headless Chromium, 360/390/430px): badge shows for the verified contact 
 the chat list, in search Chats and in People rows; unverified contacts show none;
 long names truncate without overflow; tapping the badge opens the chat; earlier
 chat/menu/profile tests still pass. Not tested on a real Android device.
+
+
+==================================================================
+UPDATE: CALMER PALETTE + FLAT UI (matches the target home mockup)
+==================================================================
+Files changed: style.css (rewritten), app.js (3 small edits), index.html, sw.js
+(cache v28 -> v37, query strings ?v=37), manifest.webmanifest, icon.svg
+
+- style.css was consolidated from ~130 one-off hex values and four stacked
+  "refresh" layers into one token set at the top (--bg, --surface, --surface-2,
+  --line, --ink, --mut, --pri, --acc, --sent, --badge). Every screen now reads
+  from those tokens, so the palette can be adjusted in one place.
+- Purple is desaturated: accent #6c5bb0 (buttons, sent bubbles, FAB), #a89cdc for
+  icons/active text. Surfaces are near-neutral (#0d0c13 / #14131c / #1c1a27).
+- Removed: glow/drop-shadow filters, gradient text, grid background, pulsing
+  badge, gradient cards/bubbles/buttons, coloured shadows.
+- Home matches the mockup: flat bordered cards, time top-right, solid FAB, rounded
+  tab bar with a short active bar, soft two-tone wave behind the list.
+- Verified badge: new flat scalloped seal with a white check (one colour, no
+  glow), 17-20px depending on context. The artwork lives once in app.js
+  (VERIFIED_SEAL_SVG) and is used by the badge and its info card.
+- Avatars: same hue family, saturation 40% -> 30%, hue range narrowed so none
+  drift towards pink.
+- No logic changed: IDs, handlers, encryption, Nostr and Supabase code untouched.
+
+Tested (headless Chromium, 412px, seeded local data): home, search mode, chat
+thread, header badge card, profile sheet. Zero page errors.
+NOT tested: real Android device, live relays, installed-PWA update. The PNG app
+icons (icon-192/512/maskable) still use the old purple; icon.svg is updated.

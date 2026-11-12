@@ -33,6 +33,7 @@ const RUSTLE_VERIFIED_USERS=[
 ];
 const VERIFIED_BADGE_TITLE="Verified Rustle Team Member";
 const VERIFIED_BADGE_MESSAGE="This account is verified and is a part of Rustle development.";
+const VERIFIED_SEAL_SVG='<svg viewBox="0 0 32 32" aria-hidden="true"><path class="verified-seal" d="M16.0 1.3L16.9 1.5L17.8 2.2L18.6 3.1L19.2 4.0L19.8 4.7L20.5 5.2L21.3 5.3L22.2 5.2L23.3 5.0L24.5 4.9L25.6 5.1L26.4 5.6L26.9 6.4L27.1 7.5L27.0 8.7L26.8 9.8L26.7 10.7L26.8 11.5L27.3 12.2L28.0 12.8L28.9 13.4L29.8 14.2L30.5 15.1L30.7 16.0L30.5 16.9L29.8 17.8L28.9 18.6L28.0 19.2L27.3 19.8L26.8 20.5L26.7 21.3L26.8 22.2L27.0 23.3L27.1 24.5L26.9 25.6L26.4 26.4L25.6 26.9L24.5 27.1L23.3 27.0L22.2 26.8L21.3 26.7L20.5 26.8L19.8 27.3L19.2 28.0L18.6 28.9L17.8 29.8L16.9 30.5L16.0 30.7L15.1 30.5L14.2 29.8L13.4 28.9L12.8 28.0L12.2 27.3L11.5 26.8L10.7 26.7L9.8 26.8L8.7 27.0L7.5 27.1L6.4 26.9L5.6 26.4L5.1 25.6L4.9 24.5L5.0 23.3L5.2 22.2L5.3 21.3L5.2 20.5L4.7 19.8L4.0 19.2L3.1 18.6L2.2 17.8L1.5 16.9L1.3 16.0L1.5 15.1L2.2 14.2L3.1 13.4L4.0 12.8L4.7 12.2L5.2 11.5L5.3 10.7L5.2 9.8L5.0 8.7L4.9 7.5L5.1 6.4L5.6 5.6L6.4 5.1L7.5 4.9L8.7 5.0L9.8 5.2L10.7 5.3L11.5 5.2L12.2 4.7L12.8 4.0L13.4 3.1L14.2 2.2L15.1 1.5Z"/><path class="verified-check" d="m10.6 16.4 3.9 3.9 7-8"/></svg>';
 
 /* Ephemeral Nostr event used only to exchange (encrypted) connection offers. */
 const SIGNAL_KIND=25050;
@@ -2033,11 +2034,11 @@ button.type="button";
 button.setAttribute("aria-label",VERIFIED_BADGE_TITLE);
 button.setAttribute("aria-expanded","false");
 button.title=VERIFIED_BADGE_TITLE;
-button.innerHTML='<svg viewBox="0 0 32 32" aria-hidden="true"><path class="verified-shield" d="M16 2.8 20.5 5l5.1.6 1.7 4.8 3.1 4.1-2.2 4.7-.6 5.1-4.8 1.7-4.1 3.1-4.7-2.2-5.1-.6-1.7-4.8-3.1-4.1 2.2-4.7.6-5.1 4.8-1.7z"/><path class="verified-check" d="m10.5 16.2 3.7 3.7 7.6-8"/></svg>';
+button.innerHTML=VERIFIED_SEAL_SVG;
 const tip=el("span","verified-tooltip");
 tip.setAttribute("role","tooltip");
 const icon=el("span","verified-tooltip-icon");
-icon.innerHTML='<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2.8 20.5 5l5.1.6 1.7 4.8 3.1 4.1-2.2 4.7-.6 5.1-4.8 1.7-4.1 3.1-4.7-2.2-5.1-.6-1.7-4.8-3.1-4.1 2.2-4.7.6-5.1 4.8-1.7z"/><path d="m10.5 16.2 3.7 3.7 7.6-8"/></svg>';
+icon.innerHTML=VERIFIED_SEAL_SVG;
 const copy=el("span","verified-tooltip-copy");
 copy.append(el("strong",null,VERIFIED_BADGE_TITLE),el("span",null,VERIFIED_BADGE_MESSAGE));
 tip.append(icon,copy);
@@ -2108,8 +2109,8 @@ return n;
 }
 
 function paintAvatar(n,pk,name){
-const h=232+(parseInt((pk||"000000").slice(0,6),16)%62);
-n.style.background="hsl("+h+" 40% 42%)";
+const h=240+(parseInt((pk||"000000").slice(0,6),16)%44);
+n.style.background="hsl("+h+" 30% 41%)";
 n.textContent=initials(String(name||"?").replace(/^@/,""));
 n.dataset.pk=pk||"";
 if(pk&&isOnline(pk))n.append(el("i","online-dot"));
