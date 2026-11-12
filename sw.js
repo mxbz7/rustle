@@ -1,4 +1,4 @@
-const CACHE="whisper-shell-v11";
+const CACHE="whisper-shell-v12";
 const ASSETS=["./","./index.html","./style.css","./app.js","./nostr.bundle.js","./manifest.webmanifest","./icon-192.png","./icon-512.png"];
 self.addEventListener("install",event=>{event.waitUntil(caches.open(CACHE).then(cache=>Promise.all(ASSETS.map(a=>cache.add(a).catch(()=>{})))));self.skipWaiting()});
 self.addEventListener("activate",event=>{event.waitUntil((async()=>{for(const key of await caches.keys())if(key!==CACHE)await caches.delete(key);await self.clients.claim()})())});

@@ -627,17 +627,20 @@ status("Connecting to relays…");
 sub=pool.subscribeMany(
 RELAYS,
 [
+{kinds:[1059],"#p":[me],limit:500},
 {kinds:[4],"#p":[me],limit:500},
 {kinds:[4],authors:[me],limit:500}
 ],
 {
-onevent:receive,
+onevent:onRelayEvent,
 
 oneose(){
 status("Connected · listening on relays");
 }
 }
 );
+
+watchRelayAuth();
 
 setTimeout(()=>{
 
@@ -648,6 +651,192 @@ status("Trying relays…");
 }
 
 },2500);
+
+}
+
+/* PRIVATE MESSAGES (NIP-17: rumor -> seal -> gift wrap) */
+
+const MAX_MESSAGE=4000;
+const wrapSeen=new Set();
+let reauthTimer=null;
+
+function randomPast(){
+const r=crypto.getRandomValues(new Uint32Array(1))[0]/4294967296;
+return Math.floor(Date.now()/1000)-Math.floor(r*172800);
+}
+
+function convKey(priv,pub){
+return NT.nip44.getConversationKey(priv,pub);
+}
+
+/* Builds the message once: an unsigned "rumor", sealed with my key,
+   then wrapped with a throw-away key. One wrap for the person, one for me. */
+
+function wrapFor(rumor,recipient){
+
+const seal=NT.finalizeEvent({
+kind:13,
+created_at:randomPast(),
+tags:[],
+content:NT.nip44.encrypt(JSON.stringify(rumor),convKey(sk,recipient))
+},sk);
+
+const once=NT.generateSecretKey();
+
+return NT.finalizeEvent({
+kind:1059,
+created_at:randomPast(),
+tags:[["p",recipient]],
+content:NT.nip44.encrypt(JSON.stringify(seal),convKey(once,recipient))
+},once);
+
+}
+
+function buildMessage(peer,text,createdAt){
+
+const rumor={
+kind:14,
+created_at:createdAt,
+tags:[["p",peer]],
+content:text,
+pubkey:me
+};
+
+rumor.id=NT.getEventHash(rumor);
+
+return{
+rumor,
+toPeer:wrapFor(rumor,peer),
+toSelf:wrapFor(rumor,me)
+};
+
+}
+
+async function receiveWrap(ev){
+
+if(!ev||ev.kind!==1059||wrapSeen.has(ev.id)||!NT||!sk)return;
+
+try{
+
+const seal=JSON.parse(NT.nip44.decrypt(ev.content,convKey(sk,ev.pubkey)));
+
+if(!seal||seal.kind!==13||typeof seal.content!=="string"||!NT.verifyEvent(seal))return;
+
+const rumor=JSON.parse(NT.nip44.decrypt(seal.content,convKey(sk,seal.pubkey)));
+
+if(!rumor||rumor.kind!==14)return;
+
+/* the sender named inside must be the one who signed the seal */
+
+if(rumor.pubkey!==seal.pubkey)return;
+
+if(typeof rumor.content!=="string"||!Array.isArray(rumor.tags)||typeof rumor.created_at!=="number")return;
+
+if(NT.getEventHash(rumor)!==rumor.id)return;
+
+wrapSeen.add(ev.id);
+
+const mine=rumor.pubkey===me;
+
+const ptag=rumor.tags.find(t=>t[0]==="p"&&/^[0-9a-f]{64}$/.test(t[1]||""));
+
+let peer;
+
+if(mine){
+
+if(!ptag)return;
+
+peer=ptag[1];
+
+}else{
+
+if(!rumor.tags.some(t=>t[0]==="p"&&t[1]===me))return;
+
+peer=rumor.pubkey;
+
+}
+
+if(!/^[0-9a-f]{64}$/.test(peer)||peer===me)return;
+
+/* already have it (retry, or the copy I sent to myself) */
+
+if(getMessages(peer).some(x=>x.id===rumor.id))return;
+
+addContact(peer);
+
+insertMessage(peer,{
+id:rumor.id,
+me:mine,
+text:rumor.content,
+t:Math.min(rumor.created_at,Math.floor(Date.now()/1000)+300),
+st:"ok"
+});
+
+if(!mine&&peer!==current){
+
+data.unread[peer]=(data.unread[peer]||0)+1;
+
+save();
+renderList();
+
+}
+
+}catch(e){
+
+/* Ignore anything that is not a valid message for me. */
+
+}
+
+}
+
+function onRelayEvent(ev){
+
+if(ev&&ev.kind===1059)receiveWrap(ev);
+else receive(ev);
+
+}
+
+/* Some relays only hand over private messages after the client proves its identity (NIP-42). */
+
+function watchRelayAuth(){
+
+if(!pool||!NT||!sk||typeof pool.ensureRelay!=="function")return;
+
+RELAYS.forEach(url=>{
+
+Promise.resolve(pool.ensureRelay(url)).then(r=>{
+
+if(!r||typeof r.auth!=="function")return;
+
+const doAuth=async()=>{
+
+if(r.__authed)return;
+
+r.__authed=true;
+
+try{
+
+await r.auth(async e=>NT.finalizeEvent(e,sk));
+
+clearTimeout(reauthTimer);
+
+reauthTimer=setTimeout(()=>{connecting=false;connect()},600);
+
+}catch{
+
+r.__authed=false;
+
+}
+
+};
+
+r._onauth=doAuth;
+
+if(r.challenge)doAuth();
+
+}).catch(()=>{});
+
+});
 
 }
 
@@ -743,11 +932,16 @@ async function sendMessage(retryId=null){
 
 const input=$("txt");
 
-const text=retryId
-?getMessages(current).find(x=>x.id===retryId)?.text
-:input.value.trim();
+const old=retryId?getMessages(current).find(x=>x.id===retryId):null;
+
+const text=retryId?old?.text:input.value.trim();
 
 if(!text||!current||!NT||!pool)return;
+
+if(text.length>MAX_MESSAGE){
+status("Message too long (max "+MAX_MESSAGE+" characters).");
+return;
+}
 
 const peer=current;
 
@@ -759,19 +953,21 @@ input.focus();
 const localId=retryId||
 ("local-"+Date.now()+"-"+Math.random().toString(36).slice(2));
 
+/* A retry rebuilds the identical message, so the other person never sees a duplicate. */
+
+const createdAt=(retryId&&old)?old.t:Math.floor(Date.now()/1000);
+
 if(!retryId){
 
 insertMessage(peer,{
 id:localId,
 me:true,
 text,
-t:Math.floor(Date.now()/1000),
+t:createdAt,
 st:"sending"
 });
 
 }else{
-
-const old=getMessages(peer).find(x=>x.id===retryId);
 
 if(old)old.st="sending";
 
@@ -782,14 +978,9 @@ renderThread();
 
 try{
 
-const content=await NT.nip04.encrypt(sk,peer,text);
+const built=buildMessage(peer,text,createdAt);
 
-const ev=NT.finalizeEvent({
-kind:4,
-created_at:Math.floor(Date.now()/1000),
-tags:[["p",peer]],
-content
-},sk);
+const rumor=built.rumor;
 
 {
 
@@ -802,29 +993,33 @@ if(i>=0)a.splice(i,1);
 }
 
 insertMessage(peer,{
-id:ev.id,
+id:rumor.id,
 me:true,
 text,
-t:ev.created_at,
+t:rumor.created_at,
 st:"sending"
 });
 
 const ok=await Promise.race([
-Promise.any(pool.publish(RELAYS,ev)).then(()=>true,()=>false),
+Promise.any(pool.publish(RELAYS,built.toPeer)).then(()=>true,()=>false),
 new Promise(r=>setTimeout(()=>r(false),10000))
 ]);
 
 insertMessage(peer,{
-id:ev.id,
+id:rumor.id,
 me:true,
 text,
-t:ev.created_at,
+t:rumor.created_at,
 st:ok?"ok":"failed"
 });
 
 if(!ok){
 status("Message not acknowledged. Check connection.");
 }
+
+/* copy for my own other devices and for restoring later (best effort) */
+
+Promise.allSettled(pool.publish(RELAYS,built.toSelf));
 
 }catch(e){
 
