@@ -617,3 +617,26 @@ button{min-height:42px}
 @keyframes dialog-rise{from{opacity:.7;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
 @media(min-width:700px){.dialog-backdrop{align-items:center}.dialog-card{border-radius:24px}}
 @media(prefers-reduced-motion:reduce){.dialog-card,.dialog-backdrop{animation:none!important}}
+
+/* Official Rustle verification badge */
+.verified-name{display:inline-flex;align-items:center;gap:7px;min-width:0}
+.verified-badge-wrap{position:relative;display:inline-flex;align-items:center;vertical-align:middle;flex:0 0 auto;z-index:5}
+.verified-badge{width:27px;height:27px;padding:0;margin:0;border:0;border-radius:50%;display:grid;place-items:center;background:transparent;color:#d9b7ff;box-shadow:none;filter:drop-shadow(0 0 3px #a12cff) drop-shadow(0 0 7px #8b2cffaa);transition:filter .2s,transform .2s}
+.verified-badge:active{transform:scale(.92)}
+.verified-badge svg{width:100%;height:100%;overflow:visible}
+.verified-shield{fill:#7c2cff33;stroke:#c18aff;stroke-width:1.8;stroke-linejoin:round}
+.verified-check{fill:none;stroke:#fff;stroke-width:2.8;stroke-linecap:round;stroke-linejoin:round}
+.verified-badge-wrap.is-open .verified-badge{filter:drop-shadow(0 0 4px #b65cff) drop-shadow(0 0 11px #922bff)}
+.verified-tooltip{position:absolute;left:50%;bottom:calc(100% + 12px);transform:translate(-50%,5px);width:min(290px,calc(100vw - 48px));padding:13px 15px;display:flex;align-items:center;gap:12px;border:1px solid #a52cff;border-radius:15px;background:linear-gradient(145deg,#21132f,#171222);box-shadow:0 0 0 1px #8c32ff33,0 0 18px #8d24ff55,0 12px 30px #0008;color:var(--ink);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .18s,transform .18s,visibility .18s;white-space:normal;text-align:left;z-index:30}
+.verified-tooltip:after{content:"";position:absolute;left:50%;top:100%;width:10px;height:10px;background:#1c142b;border-right:1px solid #a52cff;border-bottom:1px solid #a52cff;transform:translate(-50%,-5px) rotate(45deg)}
+.verified-badge-wrap.is-open .verified-tooltip{opacity:1;visibility:visible;pointer-events:auto;transform:translate(-50%,0)}
+.verified-tooltip-icon{width:36px;height:36px;flex:0 0 36px;filter:drop-shadow(0 0 5px #a12cff)}
+.verified-tooltip-icon svg{width:100%;height:100%;fill:#862dff22;stroke:#c28aff;stroke-width:1.8;stroke-linejoin:round;stroke-linecap:round}
+.verified-tooltip-icon svg path:last-child{fill:none;stroke:#fff;stroke-width:2.5}
+.verified-tooltip-copy{display:flex;flex-direction:column;gap:3px;min-width:0}
+.verified-tooltip-copy strong{font-size:14px;line-height:1.25;color:#fff}
+.verified-tooltip-copy span{font-size:12px;line-height:1.4;color:#c5b4e8}
+.n .verified-badge{width:21px;height:21px}
+#title .verified-badge{width:21px;height:21px}
+.introname+.verified-badge-wrap{margin-left:7px}
+@media(prefers-reduced-motion:no-preference){.verified-badge{animation:rustleVerifiedPulse 3.4s ease-in-out infinite}@keyframes rustleVerifiedPulse{0%,100%{filter:drop-shadow(0 0 3px #a12cff) drop-shadow(0 0 6px #8b2cff88)}50%{filter:drop-shadow(0 0 5px #c16cff) drop-shadow(0 0 11px #8b2cffcc)}}}

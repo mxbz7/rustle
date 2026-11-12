@@ -26,6 +26,14 @@ const RELAYS=[
 
 const KEY="whisper-v4";
 
+/* Rustle-issued verification registry. Entries are matched against the
+   canonical Nostr public key, never a username, display name, or device. */
+const RUSTLE_VERIFIED_USERS=[
+ {npub:"npub1y9xz5m4c5w8qvtjs7fcyr7rjjma83rzm6zh2fyjpq6x4fcklxwdq4t2psc",role:"team"}
+];
+const VERIFIED_BADGE_TITLE="Verified Rustle Team Member";
+const VERIFIED_BADGE_MESSAGE="This account is verified and is a part of Rustle development.";
+
 /* Ephemeral Nostr event used only to exchange (encrypted) connection offers. */
 const SIGNAL_KIND=25050;
 
@@ -617,12 +625,14 @@ save();
 renderList();
 if(current&&data.contacts[current]){
 $("title").textContent=data.contacts[current];
+appendVerifiedBadge($("title"),current);
 $("peer").textContent=subtitleFor(current);
 paintAvatar($("tavatar"),current,data.contacts[current]);
 if(currentNameChanged||!getMessages(current).length)renderThread();
 }
 if(!$("csheet").classList.contains("hidden")&&current){
 $("csName").textContent=data.contacts[current];
+appendVerifiedBadge($("csName"),current);
 $("csSub").textContent=subtitleFor(current)||NT.nip19.npubEncode(current).slice(0,16)+"…";
 paintAvatar($("csAvatar"),current,data.contacts[current]);
 }
@@ -1986,6 +1996,52 @@ return (n||"?").trim()
 
 }
 
+function isRustleVerified(pk){
+if(!pk||!NT)return false;
+try{
+const encoded=NT.nip19.npubEncode(pk).toLowerCase();
+return RUSTLE_VERIFIED_USERS.some(entry=>entry.npub.toLowerCase()===encoded);
+}catch{return false;}
+}
+
+function verifiedBadge(){
+const wrap=el("span","verified-badge-wrap");
+const button=el("button","verified-badge");
+button.type="button";
+button.setAttribute("aria-label",VERIFIED_BADGE_TITLE);
+button.setAttribute("aria-expanded","false");
+button.title=VERIFIED_BADGE_TITLE;
+button.innerHTML='<svg viewBox="0 0 32 32" aria-hidden="true"><path class="verified-shield" d="M16 2.8 20.5 5l5.1.6 1.7 4.8 3.1 4.1-2.2 4.7-.6 5.1-4.8 1.7-4.1 3.1-4.7-2.2-5.1-.6-1.7-4.8-3.1-4.1 2.2-4.7.6-5.1 4.8-1.7z"/><path class="verified-check" d="m10.5 16.2 3.7 3.7 7.6-8"/></svg>';
+const tip=el("span","verified-tooltip");
+tip.setAttribute("role","tooltip");
+const icon=el("span","verified-tooltip-icon");
+icon.innerHTML='<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2.8 20.5 5l5.1.6 1.7 4.8 3.1 4.1-2.2 4.7-.6 5.1-4.8 1.7-4.1 3.1-4.7-2.2-5.1-.6-1.7-4.8-3.1-4.1 2.2-4.7.6-5.1 4.8-1.7z"/><path d="m10.5 16.2 3.7 3.7 7.6-8"/></svg>';
+const copy=el("span","verified-tooltip-copy");
+copy.append(el("strong",null,VERIFIED_BADGE_TITLE),el("span",null,VERIFIED_BADGE_MESSAGE));
+tip.append(icon,copy);
+button.addEventListener("click",e=>{e.stopPropagation();const open=wrap.classList.toggle("is-open");button.setAttribute("aria-expanded",String(open));});
+wrap.append(button,tip);
+return wrap;
+}
+
+function appendVerifiedBadge(node,pk){
+if(!node||!isRustleVerified(pk))return;
+if(node.id==="title"){
+if(!node.querySelector(":scope > .verified-badge-wrap"))node.append(verifiedBadge());
+return;
+}
+if(node.nextElementSibling?.classList.contains("verified-badge-wrap"))return;
+node.after(verifiedBadge());
+}
+
+document.addEventListener("click",e=>{
+document.querySelectorAll(".verified-badge-wrap.is-open").forEach(w=>{
+if(w.contains(e.target))return;
+w.classList.remove("is-open");
+w.querySelector(".verified-badge")?.setAttribute("aria-expanded","false");
+});
+});
+
 /* UI HELPERS */
 
 function el(tag,cls,text){
@@ -2009,6 +2065,7 @@ b.title=data.username?"@"+data.username:"My profile";
 if($("sheetAvatar")){
 paintAvatar($("sheetAvatar"),me,data.displayName||data.username||"Me");
 $("sheetName").textContent=data.displayName||(data.username?"@"+data.username:"Your profile");
+appendVerifiedBadge($("sheetName"),me);
 $("sheetUser").textContent=data.username&&data.displayName?"@"+data.username:"";
 }
 }
@@ -2045,7 +2102,9 @@ const row=el("div","row");
 const av=el("div","avatar");
 paintAvatar(av,pk,title);
 const main=el("div","ctmain");
-main.append(el("div","n",title),el("div","p",sub));
+const nameNode=el("div","n",title);
+appendVerifiedBadge(nameNode,pk);
+main.append(nameNode,el("div","p",sub));
 row.append(av,main);
 if(btn){
 const b=el("button","pill",btn);
@@ -2179,8 +2238,10 @@ paintAvatar(av,pk,data.contacts[pk]);
 
 const main=el("div","ctmain");
 
+const nameNode=el("div","n",data.contacts[pk]);
+appendVerifiedBadge(nameNode,pk);
 main.append(
-el("div","n",data.contacts[pk]),
+nameNode,
 el("div","p",last?(last.me?"You: ":"")+last.text:(pr.u?"@"+pr.u:"No messages yet"))
 );
 
@@ -2357,6 +2418,7 @@ save();
 const pr=data.profiles[pk]||{};
 
 $("title").textContent=data.contacts[pk];
+appendVerifiedBadge($("title"),pk);
 
 $("peer").textContent=subtitleFor(pk);
 
@@ -2452,7 +2514,9 @@ const pr=data.profiles[current]||{};
 const av=el("div","avatar lg");
 paintAvatar(av,current,data.contacts[current]);
 
-d.append(av,el("div","introname",data.contacts[current]));
+const introName=el("div","introname",data.contacts[current]);
+appendVerifiedBadge(introName,current);
+d.append(av,introName);
 
 if(pr.u&&data.contacts[current]!=="@"+pr.u)d.append(el("div","p","@"+pr.u));
 
@@ -2655,6 +2719,7 @@ if(!pk)return;
 paintAvatar($("csAvatar"),pk,data.contacts[pk]);
 
 $("csName").textContent=data.contacts[pk];
+appendVerifiedBadge($("csName"),pk);
 
 $("csSub").textContent=subtitleFor(pk)||NT.nip19.npubEncode(pk).slice(0,16)+"…";
 
