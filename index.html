@@ -90,13 +90,19 @@
 <section id="thread" class="screen hidden">
 <header class="top">
 <button class="back" id="back" aria-label="Back"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>
-<div class="avatar sm" id="tavatar"></div>
+<div class="avatar sm" id="tavatar" role="button" tabindex="0" aria-label="Open contact profile"></div>
 <div class="threadhead">
 <b id="title"></b>
 <small id="peer"></small>
 </div>
-<button class="quiet" id="chatMenu" aria-label="Chat options">⋮</button>
+<button class="quiet" id="chatMenu" type="button" aria-label="Chat options" aria-haspopup="menu" aria-expanded="false" aria-controls="chatMenuPop">⋮</button>
 </header>
+
+<div id="chatMenuScrim" class="chat-scrim hidden" aria-hidden="true"></div>
+<div id="chatMenuPop" class="chat-pop" role="menu" aria-label="Chat options" aria-hidden="true">
+<button class="chat-pop-item" id="cmClear" type="button" role="menuitem" tabindex="-1"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg><span>Clear chat</span></button>
+<button class="chat-pop-item" id="cmProfile" type="button" role="menuitem" tabindex="-1"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4.5-6 8-6s7 2 8 6"/></svg><span>View profile</span></button>
+</div>
 
 <div class="scroll" id="sc">
 <div id="msgs"></div>
@@ -115,7 +121,7 @@
 
 <div class="mehead">
 <div class="avatar lg" id="csAvatar"></div>
-<div class="introname" id="csName"></div>
+<div class="name-row"><div class="introname" id="csName"></div></div>
 <div class="p" id="csSub"></div>
 </div>
 
@@ -258,6 +264,15 @@ This version uses Nostr NIP-04 encrypted direct messages. It is an older Nostr e
     <input id="displayNameEditInput" maxlength="50" autocomplete="name" placeholder="Your display name">
     <div id="displayNameError" class="hint error" aria-live="polite"></div>
     <div class="two"><button id="displayNameCancel" class="alt" type="button">Cancel</button><button id="displayNameSave" type="button">Save</button></div>
+  </div>
+</div>
+
+<div id="clearChatDialog" class="dialog-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="clearChatTitle">
+  <div class="dialog-card">
+    <div class="dialog-grip" aria-hidden="true"></div>
+    <h2 id="clearChatTitle">Clear this chat?</h2>
+    <p class="hint" id="clearChatText"></p>
+    <div class="two"><button id="clearChatCancel" class="alt" type="button">Cancel</button><button id="clearChatConfirm" class="dangerbtn" type="button">Clear chat</button></div>
   </div>
 </div>
 

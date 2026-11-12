@@ -627,9 +627,9 @@ button{min-height:42px}
 .verified-shield{fill:#7c2cff33;stroke:#c18aff;stroke-width:1.8;stroke-linejoin:round}
 .verified-check{fill:none;stroke:#fff;stroke-width:2.8;stroke-linecap:round;stroke-linejoin:round}
 .verified-badge-wrap.is-open .verified-badge{filter:drop-shadow(0 0 4px #b65cff) drop-shadow(0 0 11px #922bff)}
-.verified-tooltip{position:absolute;left:50%;bottom:calc(100% + 12px);transform:translate(-50%,5px);width:min(290px,calc(100vw - 48px));padding:13px 15px;display:flex;align-items:center;gap:12px;border:1px solid #a52cff;border-radius:15px;background:linear-gradient(145deg,#21132f,#171222);box-shadow:0 0 0 1px #8c32ff33,0 0 18px #8d24ff55,0 12px 30px #0008;color:var(--ink);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .18s,transform .18s,visibility .18s;white-space:normal;text-align:left;z-index:30}
-.verified-tooltip:after{content:"";position:absolute;left:50%;top:100%;width:10px;height:10px;background:#1c142b;border-right:1px solid #a52cff;border-bottom:1px solid #a52cff;transform:translate(-50%,-5px) rotate(45deg)}
-.verified-badge-wrap.is-open .verified-tooltip{opacity:1;visibility:visible;pointer-events:auto;transform:translate(-50%,0)}
+.verified-tooltip{position:absolute;left:50%;bottom:calc(100% + 12px);transform:translate(calc(-50% + var(--tip-dx,0px)),5px);width:min(290px,calc(100vw - 48px));padding:13px 15px;display:flex;align-items:center;gap:12px;border:1px solid #a52cff;border-radius:15px;background:linear-gradient(145deg,#21132f,#171222);box-shadow:0 0 0 1px #8c32ff33,0 0 18px #8d24ff55,0 12px 30px #0008;color:var(--ink);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .18s,transform .18s,visibility .18s;white-space:normal;text-align:left;z-index:30}
+.verified-tooltip:after{content:"";position:absolute;left:calc(50% - var(--tip-dx,0px));top:100%;width:10px;height:10px;background:#1c142b;border-right:1px solid #a52cff;border-bottom:1px solid #a52cff;transform:translate(-50%,-5px) rotate(45deg)}
+.verified-badge-wrap.is-open .verified-tooltip{opacity:1;visibility:visible;pointer-events:auto;transform:translate(calc(-50% + var(--tip-dx,0px)),0)}
 .verified-tooltip-icon{width:36px;height:36px;flex:0 0 36px;filter:drop-shadow(0 0 5px #a12cff)}
 .verified-tooltip-icon svg{width:100%;height:100%;fill:#862dff22;stroke:#c28aff;stroke-width:1.8;stroke-linejoin:round;stroke-linecap:round}
 .verified-tooltip-icon svg path:last-child{fill:none;stroke:#fff;stroke-width:2.5}
@@ -641,7 +641,32 @@ button{min-height:42px}
 .introname+.verified-badge-wrap{margin-left:7px}
 @media(prefers-reduced-motion:no-preference){.verified-badge{animation:rustleVerifiedPulse 3.4s ease-in-out infinite}@keyframes rustleVerifiedPulse{0%,100%{filter:drop-shadow(0 0 3px #a12cff) drop-shadow(0 0 6px #8b2cff88)}50%{filter:drop-shadow(0 0 5px #c16cff) drop-shadow(0 0 11px #8b2cffcc)}}}
 
-/* Keep verified contact name and badge on one aligned row. */
-#csName.introname,#sheetName.introname{display:inline-flex;align-items:center;justify-content:center;gap:7px;flex-wrap:wrap;vertical-align:middle;}
-.threadhead{cursor:pointer;min-width:0;}
-.threadhead:focus-visible{outline:2px solid var(--accent);outline-offset:4px;border-radius:8px;}
+/* Name + verified badge on one aligned row (contact sheet, empty-chat intro, own profile sheet). */
+.name-row{display:flex;align-items:center;justify-content:center;gap:7px;max-width:100%;min-width:0;margin-top:8px}
+.name-row>.introname{margin-top:0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.name-row>.verified-badge-wrap{margin-left:0}
+.name-row .verified-badge{width:24px;height:24px}
+.name-edit-row{max-width:100%;min-width:0}
+.name-edit-row>.introname{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Conversation header: clickable name/avatar, independent badge */
+.threadhead{cursor:pointer;min-width:0}
+#tavatar{cursor:pointer}
+.threadhead .tname:focus-visible,#tavatar:focus-visible{outline:2px solid var(--acc);outline-offset:3px;border-radius:8px}
+.threadhead #title{display:flex;align-items:center;gap:6px;overflow:visible;min-width:0}
+.threadhead #title .tname{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#thread .top{position:relative;z-index:8}
+#title .verified-badge-wrap{margin:-3px}
+#title .verified-tooltip{bottom:auto;top:calc(100% + 12px);font-weight:400;line-height:1.4;transform:translate(calc(-50% + var(--tip-dx,0px)),-5px)}
+#title .verified-badge-wrap.is-open .verified-tooltip{transform:translate(calc(-50% + var(--tip-dx,0px)),0)}
+#title .verified-tooltip:after{top:auto;bottom:100%;border:0;border-left:1px solid #a52cff;border-top:1px solid #a52cff;transform:translate(-50%,5px) rotate(45deg)}
+
+/* Three-dot overflow menu (inside the conversation screen) */
+#chatMenu{min-width:40px;min-height:40px;flex:none;display:grid;place-items:center;font-size:20px;line-height:1}
+.chat-scrim{position:absolute;inset:0;z-index:19;background:transparent}
+.chat-pop{position:absolute;z-index:20;left:0;top:0;min-width:190px;max-width:calc(100% - 16px);padding:6px;border-radius:16px;background:#29253B;border:1px solid #A78BEA33;box-shadow:0 12px 32px #000b,0 0 0 1px #6750A426;transform-origin:top right;opacity:0;transform:scale(.92) translateY(-6px);visibility:hidden;pointer-events:none;transition:opacity .14s ease,transform .16s ease,visibility 0s linear .16s}
+.chat-pop.open{opacity:1;transform:none;visibility:visible;pointer-events:auto;transition-delay:0s}
+.chat-pop-item{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;border-radius:11px;background:transparent;color:#fff;font-size:15px;font-weight:600;text-align:left;white-space:nowrap}
+.chat-pop-item svg{color:#A78BEA;flex:none}
+.chat-pop-item:active{background:#A78BEA24;transform:none}
+.chat-pop-item:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}

@@ -42,3 +42,36 @@ Deployment
 4. Open RUSTLE once while online so the new service worker can install and activate.
 5. If an installed PWA appears stale, fully close and reopen it after the service worker update completes.
 6. Verify chat send/receive, profile editing, username registration, photo transfer, and photo viewer gestures on a real Android device.
+
+
+==================================================================
+UPDATE: HEADER PROFILE TAP, BADGE ALIGNMENT, THREE-DOT MENU
+==================================================================
+Files changed: index.html, style.css, app.js, sw.js (cache rustle-shell-v25 -> v26)
+
+1. Chat header: tapping the @username (or the avatar) opens the existing contact
+   profile sheet for the current conversation. The verified badge keeps its own
+   handler (shows the verification card) and never opens the profile. The
+   verification card now opens below the badge in the header and is kept inside
+   the viewport. Renaming a contact no longer drops the badge from the header.
+2. Contact sheet: username and badge share one flex row (vertically centred, 7px
+   gap, name truncates with an ellipsis); the npub sits underneath. A previous
+   contact's badge can no longer linger when the sheet is reused.
+   The empty-chat intro uses the same row.
+3. Three-dot button: compact floating menu (Clear chat, View profile) anchored to
+   the icon inside the conversation screen. Closes on outside tap, selection,
+   Escape, back-arrow and resize. No bottom sheet, no navigation.
+   - Clear chat asks for confirmation, deletes this contact's local messages and
+     locally stored photos only, keeps the contact/profile/identity, and stores a
+     "cleared at" timestamp (data.clearedAt[pubkey]) so older events re-fetched
+     from relays are not re-imported. Nothing is deleted on relays or on the
+     other person's device.
+   - Block was NOT added: the app has no blocking feature.
+
+Tested (headless Chromium via Playwright, 360/390/430px, seeded local data):
+ name tap, avatar tap, header badge tooltip (no profile), sheet alignment,
+ menu position/in-viewport, outside-tap/Escape/toggle close, View profile,
+ clear-chat cancel + confirm, contact/other chats intact, tombstone filtering
+ of old events, unverified contact shows no badge, zero page errors.
+NOT tested: real Android device, hardware back button, live Nostr relays,
+ Supabase, encrypted photo transfer, installed-PWA service-worker update.

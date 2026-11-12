@@ -624,8 +624,7 @@ if(changed){
 save();
 renderList();
 if(current&&data.contacts[current]){
-$("title").textContent=data.contacts[current];
-appendVerifiedBadge($("title"),current);
+setThreadTitle(current);
 $("peer").textContent=subtitleFor(current);
 paintAvatar($("tavatar"),current,data.contacts[current]);
 if(currentNameChanged||!getMessages(current).length)renderThread();
@@ -1683,6 +1682,9 @@ if(!mine&&receiveReadReceipt(rumor,peer))return;
 
 if(getMessages(peer).some(x=>x.id===rumor.id))return;
 
+/* skip messages from before the user cleared this chat */
+if(rumor.created_at<=((data.clearedAt&&data.clearedAt[peer])||0))return;
+
 addContact(peer);
 
 insertMessage(peer,{
@@ -1791,6 +1793,9 @@ return;
 }
 
 if(!/^[0-9a-f]{64}$/.test(peer)||peer===me)return;
+
+/* skip messages from before the user cleared this chat */
+if(ev.created_at<=((data.clearedAt&&data.clearedAt[peer])||0))return;
 
 try{
 
@@ -2030,19 +2035,53 @@ icon.innerHTML='<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2.8 20.
 const copy=el("span","verified-tooltip-copy");
 copy.append(el("strong",null,VERIFIED_BADGE_TITLE),el("span",null,VERIFIED_BADGE_MESSAGE));
 tip.append(icon,copy);
-button.addEventListener("click",e=>{e.stopPropagation();const open=wrap.classList.toggle("is-open");button.setAttribute("aria-expanded",String(open));});
+button.addEventListener("click",e=>{
+e.stopPropagation();
+const open=wrap.classList.toggle("is-open");
+button.setAttribute("aria-expanded",String(open));
+if(open){
+/* keep the info card inside the viewport on narrow screens */
+tip.style.removeProperty("--tip-dx");
+const r=tip.getBoundingClientRect();
+const m=8;
+let dx=0;
+if(r.left<m)dx=m-r.left;
+else if(r.right>window.innerWidth-m)dx=window.innerWidth-m-r.right;
+if(dx)tip.style.setProperty("--tip-dx",Math.round(dx)+"px");
+}
+});
 wrap.append(button,tip);
 return wrap;
 }
 
 function appendVerifiedBadge(node,pk){
-if(!node||!isRustleVerified(pk))return;
+if(!node)return;
+const verified=isRustleVerified(pk);
 if(node.id==="title"){
-if(!node.querySelector(":scope > .verified-badge-wrap"))node.append(verifiedBadge());
+const existing=node.querySelector(":scope > .verified-badge-wrap");
+if(!verified){if(existing)existing.remove();return;}
+if(!existing)node.append(verifiedBadge());
 return;
 }
-if(node.nextElementSibling?.classList.contains("verified-badge-wrap"))return;
+/* Reused containers (contact sheet) must not keep a previous contact's badge. */
+const next=node.nextElementSibling;
+const hasBadge=!!(next&&next.classList.contains("verified-badge-wrap"));
+if(!verified){if(hasBadge)next.remove();return;}
+if(hasBadge)return;
 node.after(verifiedBadge());
+}
+
+/* Conversation header title: name text (can truncate) + independent verified badge. */
+function setThreadTitle(pk){
+const t=$("title");
+if(!t||!pk)return;
+t.textContent="";
+const name=el("span","tname",data.contacts[pk]||"");
+name.setAttribute("role","button");
+name.setAttribute("tabindex","0");
+name.setAttribute("aria-label","Open contact profile");
+t.append(name);
+appendVerifiedBadge(t,pk);
 }
 
 document.addEventListener("click",e=>{
@@ -2428,8 +2467,8 @@ save();
 
 const pr=data.profiles[pk]||{};
 
-$("title").textContent=data.contacts[pk];
-appendVerifiedBadge($("title"),pk);
+setThreadTitle(pk);
+closeChatMenu();
 
 $("peer").textContent=subtitleFor(pk);
 
@@ -2526,8 +2565,10 @@ const av=el("div","avatar lg");
 paintAvatar(av,current,data.contacts[current]);
 
 const introName=el("div","introname",data.contacts[current]);
+const introRow=el("div","name-row");
+introRow.append(introName);
+d.append(av,introRow);
 appendVerifiedBadge(introName,current);
-d.append(av,introName);
 
 if(pr.u&&data.contacts[current]!=="@"+pr.u)d.append(el("div","p","@"+pr.u));
 
@@ -2674,6 +2715,7 @@ scrollThreadToLatest();
 
 function back(){
 
+closeChatMenu();
 current=null;
 
 setTab("chats");
@@ -2766,7 +2808,7 @@ data.contactNameOverrides[current]=true;
 
 save();
 
-$("title").textContent=data.contacts[current];
+setThreadTitle(current);
 
 $("peer").textContent=subtitleFor(current);
 
@@ -2801,6 +2843,78 @@ closeContactSheet();
 
 back();
 
+}
+
+/* CHAT OVERFLOW MENU + CLEAR CHAT */
+
+function chatMenuIsOpen(){
+const p=$("chatMenuPop");
+return !!p&&p.classList.contains("open");
+}
+
+function openChatMenu(viaKeyboard){
+if(!current)return;
+const pop=$("chatMenuPop"),btn=$("chatMenu"),host=$("thread");
+const hr=host.getBoundingClientRect(),br=btn.getBoundingClientRect();
+const m=8;
+show("chatMenuScrim");
+const pw=pop.offsetWidth;
+let left=br.right-hr.left-pw;
+left=Math.max(m,Math.min(left,hr.width-pw-m));
+const top=Math.max(m,br.bottom-hr.top+2);
+pop.style.left=left+"px";
+pop.style.top=top+"px";
+pop.classList.add("open");
+pop.setAttribute("aria-hidden","false");
+btn.setAttribute("aria-expanded","true");
+pop.querySelectorAll(".chat-pop-item").forEach(b=>b.tabIndex=0);
+if(viaKeyboard)$("cmClear").focus();
+}
+
+function closeChatMenu(){
+const pop=$("chatMenuPop");
+if(!pop)return;
+const wasOpen=pop.classList.contains("open");
+pop.classList.remove("open");
+pop.setAttribute("aria-hidden","true");
+pop.querySelectorAll(".chat-pop-item").forEach(b=>b.tabIndex=-1);
+hide("chatMenuScrim");
+$("chatMenu").setAttribute("aria-expanded","false");
+if(wasOpen&&pop.contains(document.activeElement))$("chatMenu").focus();
+}
+
+let clearChatPk=null;
+
+function openClearChatDialog(){
+const pk=current;
+if(!pk||!data.contacts[pk])return;
+clearChatPk=pk;
+$("clearChatText").textContent="All messages and photos in your chat with "+data.contacts[pk]+" will be deleted from this device only. The contact stays in your list. Nothing is deleted from their device, and they keep their own copy.";
+show("clearChatDialog");
+setTimeout(()=>$("clearChatCancel").focus(),30);
+}
+
+function closeClearChatDialog(){
+clearChatPk=null;
+hide("clearChatDialog");
+}
+
+function clearChat(){
+const pk=clearChatPk;
+closeClearChatDialog();
+if(!pk||pk!==current||!data.contacts[pk])return;
+(data.messages[pk]||[]).forEach(m=>{
+if(m&&m.image)deleteLocalImage(m.image.rid||m.image.id).catch(()=>{});
+});
+/* Relays still hold the older encrypted events and re-send them on reconnect;
+   remember when the chat was cleared so those are not re-imported. */
+data.clearedAt=data.clearedAt||{};
+data.clearedAt[pk]=Math.floor(Date.now()/1000);
+data.messages[pk]=[];
+data.unread[pk]=0;
+save();
+renderThread();
+renderList();
 }
 
 /* CLIPBOARD */
@@ -2911,6 +3025,8 @@ csCopyTimer=setTimeout(()=>{lab.textContent="Copy public ID"},1800);
 
 document.addEventListener("keydown",e=>{
   if(e.key!=="Escape")return;
+  if(!$("clearChatDialog").classList.contains("hidden")){closeClearChatDialog();return;}
+  if(chatMenuIsOpen()){closeChatMenu();return;}
   if(!$("csheet").classList.contains("hidden")){closeContactSheet();return;}
   if($("home").classList.contains("search-mode")){closeSearchView();return;}
   if(!$("sheet").classList.contains("hidden"))hide("sheet");
@@ -2985,16 +3101,36 @@ $("search").oninput=onSearch;
 
 $("back").onclick=back;
 
-$("chatMenu").onclick=contactOptions;
+/* Three-dot menu: compact floating menu anchored inside the conversation screen. */
+$("chatMenu").onclick=e=>{
+e.stopPropagation();
+if(chatMenuIsOpen())closeChatMenu();else openChatMenu(e.detail===0);
+};
+$("chatMenuScrim").onclick=e=>{e.preventDefault();e.stopPropagation();closeChatMenu();};
+$("cmProfile").onclick=()=>{closeChatMenu();contactOptions();};
+$("cmClear").onclick=()=>{closeChatMenu();openClearChatDialog();};
+$("clearChatCancel").onclick=closeClearChatDialog;
+$("clearChatConfirm").onclick=clearChat;
+$("clearChatDialog").onclick=e=>{if(e.target===$("clearChatDialog"))closeClearChatDialog();};
+window.addEventListener("resize",closeChatMenu);
 
-// Tapping the conversation name opens the contact profile/details sheet.
+/* Tapping the contact name or avatar opens the contact profile. The verified badge
+   keeps its own handler (shows verification info) and never opens the profile. */
 const threadHead=document.querySelector(".threadhead");
 if(threadHead){
-threadHead.setAttribute("role","button");
-threadHead.setAttribute("tabindex","0");
-threadHead.setAttribute("aria-label","Open contact profile");
-threadHead.addEventListener("click",contactOptions);
-threadHead.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();contactOptions();}});
+threadHead.addEventListener("click",e=>{
+if(e.target.closest(".verified-badge-wrap"))return;
+contactOptions();
+});
+threadHead.addEventListener("keydown",e=>{
+if(!e.target.classList||!e.target.classList.contains("tname"))return;
+if(e.key==="Enter"||e.key===" "){e.preventDefault();contactOptions();}
+});
+}
+const threadAvatar=$("tavatar");
+if(threadAvatar){
+threadAvatar.addEventListener("click",contactOptions);
+threadAvatar.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();contactOptions();}});
 }
 
 /* OPEN IDENTITY SHEET */
