@@ -2961,21 +2961,6 @@ return location.origin+location.pathname+"#add="+encodeURIComponent(npub);
 
 }
 
-/* EVENTS */
-
-function wire(){
-
-// Keep the app viewport aligned with the visible Android viewport when the keyboard opens.
-const syncVisibleViewport=()=>{
-  const height=window.visualViewport?window.visualViewport.height:window.innerHeight;
-  document.documentElement.style.setProperty("--app-height",Math.round(height)+"px");
-};
-syncVisibleViewport();
-window.visualViewport?.addEventListener("resize",syncVisibleViewport,{passive:true});
-window.visualViewport?.addEventListener("scroll",syncVisibleViewport,{passive:true});
-window.addEventListener("orientationchange",()=>setTimeout(syncVisibleViewport,120),{passive:true});
-
-
 /* ONLINE PRESENCE
    Every ~25s while the app is open and visible, an encrypted ephemeral event is sent to each
    contact. A contact counts as online if one arrived in the last ~65s. Sharing is reciprocal:
@@ -3077,6 +3062,21 @@ function setShowOnline(on){
  }
  refreshPresenceDots();
 }
+
+/* EVENTS */
+
+function wire(){
+
+// Keep the app viewport aligned with the visible Android viewport when the keyboard opens.
+const syncVisibleViewport=()=>{
+  const height=window.visualViewport?window.visualViewport.height:window.innerHeight;
+  document.documentElement.style.setProperty("--app-height",Math.round(height)+"px");
+};
+syncVisibleViewport();
+window.visualViewport?.addEventListener("resize",syncVisibleViewport,{passive:true});
+window.visualViewport?.addEventListener("scroll",syncVisibleViewport,{passive:true});
+window.addEventListener("orientationchange",()=>setTimeout(syncVisibleViewport,120),{passive:true});
+
 
 // No native text selection on messages (copy is handled by the custom long-press).
 document.addEventListener("selectstart",e=>{const t=e.target&&(e.target.nodeType===1?e.target:e.target.parentElement);if(t&&t.closest&&t.closest(".message-text"))e.preventDefault();});
