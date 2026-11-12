@@ -1,10 +1,10 @@
 "use strict";
-const CACHE = "rustle-shell-v30";
+const CACHE = "rustle-shell-v35";
 const SHELL = ["./", "./index.html", "./style.css", "./app.js", "./nostr.bundle.js", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./icon-maskable-512.png"];
 self.addEventListener("install", event => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE);
-    await Promise.all(SHELL.map(path => cache.add(path).catch(() => null)));
+    await Promise.all(SHELL.map(path => cache.add(new Request(path, { cache: "reload" })).catch(() => null)));
     await self.skipWaiting();
   })());
 });
@@ -24,7 +24,7 @@ self.addEventListener("fetch", event => {
   event.respondWith((async () => {
     const cache = await caches.open(CACHE);
     try {
-      const response = await fetch(request);
+      const response = await fetch(request, { cache: "no-cache" });
       if (response && response.ok && response.type !== "opaque") {
         const copy = response.clone();
         await cache.put(request, copy).catch(() => {});

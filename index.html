@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>RUSTLE</title>
 
-<link rel="stylesheet" href="./style.css?v=29">
+<link rel="stylesheet" href="./style.css?v=35">
 </head>
 
 <body>
@@ -54,10 +54,9 @@
 
 <section id="home" class="screen hidden">
 <header class="top">
-<div class="brandcol">
-<div class="brand">RUSTLE</div>
-<div class="statusrow"><i class="dot"></i><span id="status">Starting…</span></div>
-</div>
+<div class="brandwrap"><svg class="logo-mark" viewBox="0 0 74 56" aria-hidden="true"><defs><linearGradient id="lbA" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#cdb8ff"/><stop offset="1" stop-color="#9a78f2"/></linearGradient><linearGradient id="lbB" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8b52f2"/><stop offset="1" stop-color="#5a2bd0"/></linearGradient></defs><path d="M25 4 5 27h14l-7 23 22-27H21z" fill="url(#lbA)" stroke="url(#lbA)" stroke-width="4" stroke-linejoin="round"/><path d="M52 8 31 30h14l-8 20 23-26H46z" fill="url(#lbB)" stroke="url(#lbB)" stroke-width="4" stroke-linejoin="round" transform="translate(8 3)"/></svg><div class="brand">RUSTLE</div></div>
+<span class="vsep" aria-hidden="true"></span>
+<div class="statusrow"><i class="dot"></i><div class="stx"><span id="status">Starting…</span><small id="statusSub"></small></div></div>
 <button id="me" class="avatar sm" aria-label="My profile"></button>
 </header>
 
@@ -78,12 +77,13 @@
 <div id="list"></div>
 </div>
 
-<button id="fab" class="fab hidden" aria-label="New chat"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/></svg></button>
+<button id="fab" class="fab hidden" aria-label="New chat"><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 17.25V21h3.75L17.8 9.94l-3.75-3.75zM20.7 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75z"/></svg></button>
 
 <nav class="tabs">
-<button class="tab active" id="tabChats"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg><span>Chats</span></button>
-<button class="tab" id="tabSearch"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Search</span></button>
-<button class="tab" id="tabProfile"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4.5-6 8-6s7 2 8 6"/></svg><span>Profile</span></button>
+<button class="tab active" id="tabChats"><svg class="ic-home" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11.2 12 3l9 8.2V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span>Home</span></button>
+<button class="tab" id="tabSearch"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Search</span></button>
+<button class="tab" id="tabNew"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12v5a3 3 0 0 1-3 3H9l-5 3v-3.2A3 3 0 0 1 3 17V7a3 3 0 0 1 3-3h7"/><path d="M8 11h.01M12 11h.01M16 11h.01"/><path d="M19 2v6M16 5h6"/></svg><span>New Chat</span></button>
+<button class="tab" id="tabProfile"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>Settings</span></button>
 </nav>
 </section>
 
@@ -186,6 +186,11 @@
 <button class="alt" id="share" type="button">Share invite</button>
 </div>
 
+<label class="section pf-toggle" for="showOnline">
+<span class="pf-toggle-tx"><b>Show when I'm online</b><small>Contacts see a green dot. If off, you also won't see theirs.</small></span>
+<input type="checkbox" id="showOnline" checked>
+</label>
+
 <details class="pf-sec">
 <summary><span>Backup &amp; restore</span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
 <div class="pf-sec-body">
@@ -231,7 +236,7 @@
 
 <script src="./nostr.bundle.js"></script>
 
-<script src="./app.js?v=29"></script>
+<script src="./app.js?v=35"></script>
 
 </body>
 </html>
