@@ -2394,6 +2394,17 @@ readMessageObserver.observe(node);
 
 /* RENDER CHAT */
 
+function saveSharedImage(rid,name){
+ return getLocalImage(rid).then(blob=>{if(!blob){toast("Original image is not available on this device.");return;}const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=name||"rustle-image";document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);toast("Photo saved to your downloads.");}).catch(()=>toast("Could not save this photo."));
+}
+async function shareSharedImage(rid,name){
+ try{const blob=await getLocalImage(rid);if(!blob){toast("Original image is not available on this device.");return;}const file=new File([blob],name||"rustle-image",{type:blob.type||"image/jpeg"});if(navigator.canShare&&navigator.canShare({files:[file]}))await navigator.share({files:[file],title:name||"RUSTLE photo"});else if(navigator.share)await navigator.share({title:name||"RUSTLE photo",url:location.href});else await saveSharedImage(rid,name);}catch(e){if(e.name!=="AbortError")toast("Sharing isn't available here.");}
+}
+function openImageViewer(src,name,rid){
+ let v=document.getElementById("imageViewer");if(!v){v=document.createElement("div");v.id="imageViewer";v.className="image-viewer hidden";v.setAttribute("role","dialog");v.setAttribute("aria-modal","true");v.setAttribute("aria-label","Photo viewer");v.innerHTML='<div class="viewer-top"><span class="viewer-name"></span><button class="viewer-close" type="button" aria-label="Close photo">×</button></div><div class="viewer-stage"><img alt=""></div><div class="viewer-actions"><button class="image-action" type="button" data-viewer-save><svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 17v3h14v-3"/></svg><span>Save photo</span></button><button class="image-action" type="button" data-viewer-share><svg viewBox="0 0 24 24"><path d="M12 16V3m0 0L7 8m5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg><span>Share</span></button></div>';document.body.append(v);v.querySelector(".viewer-close").onclick=()=>v.classList.add("hidden");v.addEventListener("click",e=>{if(e.target===v)v.classList.add("hidden")});v.querySelector("[data-viewer-save]").onclick=()=>saveSharedImage(v.dataset.rid,v.dataset.name);v.querySelector("[data-viewer-share]").onclick=()=>shareSharedImage(v.dataset.rid,v.dataset.name);document.addEventListener("keydown",e=>{if(e.key==="Escape")v.classList.add("hidden")});}
+ v.dataset.rid=rid;v.dataset.name=name;v.querySelector(".viewer-name").textContent=name;v.querySelector(".viewer-stage img").src=src;v.querySelector(".viewer-stage img").alt=name;v.classList.remove("hidden");
+}
+
 function renderThread(){
 
 if(!current)return;
@@ -2484,28 +2495,28 @@ if(m.image){
  caption.textContent=imgState.get(rid)||base;
  d.append(caption);
 
- const download=document.createElement("a");
- download.className="image-download hidden";
- download.textContent="Save original";
- download.href="#";
- download.onclick=async e=>{
-  e.preventDefault();
-  try{
-   const blob=await getLocalImage(rid);
-   if(!blob){toast("Original image is not available on this device.");return;}
-   const url=URL.createObjectURL(blob),a=document.createElement("a");
-   a.href=url;a.download=im.name||"rustle-image";a.click();
-   setTimeout(()=>URL.revokeObjectURL(url),30000);
-  }catch{}
- };
- d.append(download);
+ const actions=document.createElement("div");
+ actions.className="image-actions hidden";
+ const saveBtn=document.createElement("button");saveBtn.className="image-action";saveBtn.type="button";
+ saveBtn.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 17v3h14v-3"/></svg><span>Save</span>';
+ saveBtn.setAttribute("aria-label","Save photo");saveBtn.onclick=()=>saveSharedImage(rid,im.name);
+ const shareBtn=document.createElement("button");shareBtn.className="image-action";shareBtn.type="button";
+ shareBtn.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V3m0 0L7 8m5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg><span>Share</span>';
+ shareBtn.setAttribute("aria-label","Share photo");shareBtn.onclick=()=>shareSharedImage(rid,im.name);
+ const viewBtn=document.createElement("button");viewBtn.className="image-action";viewBtn.type="button";
+ viewBtn.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9V4h5m8 0h5v5M3 15v5h5m8 0h5v-5"/></svg><span>View</span>';
+ viewBtn.setAttribute("aria-label","View photo full screen");viewBtn.onclick=()=>openImageViewer(img.src,im.name||"Shared photo",rid);
+ actions.append(saveBtn,shareBtn,viewBtn);d.append(actions);
+ img.addEventListener("click",()=>openImageViewer(img.src,im.name||"Shared photo",rid));
+ img.setAttribute("role","button");img.setAttribute("tabindex","0");img.setAttribute("aria-label","Open photo: "+(im.name||"Shared image"));
+ img.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openImageViewer(img.src,im.name||"Shared photo",rid);}});
 
  getLocalImage(rid).then(blob=>{
   if(!d.isConnected)return;
   if(blob){
    img.src=objectUrl(rid,blob);
    img.classList.remove("hidden");
-   download.classList.remove("hidden");
+   actions.classList.remove("hidden");
    holder.remove();
   }else{
    holder.textContent="This image is not stored on this device.";
