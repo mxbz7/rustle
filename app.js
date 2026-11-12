@@ -2368,7 +2368,8 @@ show("thread");
 renderThread();
 flushReadReceipts();
 
-$("txt").focus();
+// Do not open the Android keyboard just because a conversation was opened.
+// It can resize the viewport before the message list has finished laying out.
 
 }
 
@@ -2419,6 +2420,14 @@ function setupPhotoGestures(v){
  stage.addEventListener("touchstart",e=>{if(e.touches.length===2){startDistance=pointDistance(e.touches);startScale=Number(img.dataset.scale||1);baseX=Number(img.dataset.x||0);baseY=Number(img.dataset.y||0)}else if(e.touches.length===1){panX=e.touches[0].clientX;panY=e.touches[0].clientY;const now=Date.now();if(now-lastTap<280){startScale=Number(img.dataset.scale||1)>1?1:2.5;baseX=0;baseY=0;apply()}lastTap=now;}},{passive:true});
  stage.addEventListener("touchmove",e=>{if(e.touches.length===2&&startDistance){e.preventDefault();startScale=Math.max(1,Math.min(4,startScale*pointDistance(e.touches)/startDistance));startDistance=pointDistance(e.touches);apply()}else if(e.touches.length===1&&Number(img.dataset.scale||1)>1){e.preventDefault();baseX+=e.touches[0].clientX-panX;baseY+=e.touches[0].clientY-panY;panX=e.touches[0].clientX;panY=e.touches[0].clientY;startScale=Number(img.dataset.scale||1);apply()}},{passive:false});
  stage.addEventListener("touchend",()=>{startDistance=0},{passive:true});
+}
+
+function scrollThreadToLatest(behavior="auto"){
+const sc=$("sc");
+if(!sc)return;
+const move=()=>{sc.scrollTop=sc.scrollHeight;};
+// Wait for layout to settle so the newest message is visible on first open.
+requestAnimationFrame(()=>{move();requestAnimationFrame(move);});
 }
 
 function renderThread(){
@@ -2531,6 +2540,7 @@ if(m.image){
   if(!d.isConnected)return;
   if(blob){
    img.src=objectUrl(rid,blob);
+   img.addEventListener("load",()=>{if(current&&d.isConnected){const sc=$("sc");if(sc&&sc.scrollHeight-sc.scrollTop-sc.clientHeight<120)scrollThreadToLatest();}},{once:true});
    img.classList.remove("hidden");
    actions.classList.remove("hidden");
    holder.remove();
@@ -2581,7 +2591,7 @@ if(!m.me)observeIncomingMessage(d,current,m);
 
 }
 
-$("sc").scrollTop=$("sc").scrollHeight;
+scrollThreadToLatest();
 
 }
 
