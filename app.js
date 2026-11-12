@@ -2960,6 +2960,9 @@ window.visualViewport?.addEventListener("resize",syncVisibleViewport,{passive:tr
 window.visualViewport?.addEventListener("scroll",syncVisibleViewport,{passive:true});
 window.addEventListener("orientationchange",()=>setTimeout(syncVisibleViewport,120),{passive:true});
 
+// No native text selection on messages (copy is handled by the custom long-press).
+document.addEventListener("selectstart",e=>{const t=e.target&&(e.target.nodeType===1?e.target:e.target.parentElement);if(t&&t.closest&&t.closest(".message-text"))e.preventDefault();});
+document.addEventListener("selectionchange",()=>{const sel=window.getSelection&&window.getSelection();if(!sel||sel.isCollapsed)return;const n=sel.anchorNode&&(sel.anchorNode.nodeType===1?sel.anchorNode:sel.anchorNode.parentElement);if(n&&n.closest&&n.closest(".message-text"))sel.removeAllRanges();});
 // Prevent accidental selection/copying of interface labels and timestamps.
 // Message bodies retain their dedicated long-press copy action.
 document.addEventListener("copy",e=>{
