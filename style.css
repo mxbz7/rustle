@@ -446,3 +446,6 @@ body{background:#16132a}
 .m .image-download{display:inline-block;color:#fff;font-size:12px;text-decoration:underline;margin:5px 4px 0}
 .m .image-ph{padding:14px 10px;text-align:center;font-size:13px;color:var(--mut)}
 .m .image-ph .chip{margin-top:0}
+
+/* Outgoing message delivery/read ticks use one consistent color. */
+.m .message-ticks{color:var(--ink);font-weight:700;letter-spacing:.02em;}

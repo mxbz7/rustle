@@ -76,6 +76,7 @@ data.contacts=data.contacts||{};
 data.messages=data.messages||{};
 data.unread=data.unread||{};
 data.profiles=data.profiles||{};
+data.pendingReadReceipts=data.pendingReadReceipts||{};
 
 /* An image that was mid-transfer when the app was closed cannot still be sending. */
 
@@ -615,8 +616,13 @@ status("Invite detected — tap Message.");
 }
 
 document.addEventListener("visibilitychange",()=>{
-if(!document.hidden)connect();
+if(!document.hidden){
+connect();
+flushReadReceipts();
+if(current)renderThread();
+}
 });
+window.addEventListener("online",flushReadReceipts);
 
 }
 
@@ -647,6 +653,7 @@ onevent:onRelayEvent,
 
 oneose(){
 status("Connected · listening on relays");
+flushReadReceipts();
 }
 }
 );
@@ -1357,6 +1364,67 @@ toSelf:wrapFor(rumor,me)
 
 }
 
+/* Read receipts are ordinary NIP-17 gift-wrapped messages. The receipt
+   payload is encrypted to the conversation peer and its inner seal is
+   signed by the reader's Nostr identity. */
+const readReceiptInflight=new Set();
+
+function queueReadReceipt(peer,message){
+if(!peer||!message||message.me||message.receiptSent)return;
+message.receiptSent=true;
+const key=peer+":"+message.id;
+data.pendingReadReceipts[key]={peer,messageId:message.id};
+save();
+flushReadReceipts();
+}
+
+async function flushReadReceipts(){
+if(!pool||!NT||!sk||!navigator.onLine)return;
+for(const [key,item] of Object.entries(data.pendingReadReceipts||{})){
+if(readReceiptInflight.has(key))continue;
+if(!item||!/^[0-9a-f]{64}$/.test(item.peer||"")||item.peer===me)continue;
+readReceiptInflight.add(key);
+try{
+const rumor={
+kind:14,
+created_at:Math.floor(Date.now()/1000),
+tags:[["p",item.peer]],
+content:JSON.stringify({
+protocol:"rustle-read-receipt",
+version:1,
+message_id:item.messageId,
+recipient:item.peer
+}),
+pubkey:me
+};
+rumor.id=NT.getEventHash(rumor);
+const wrapped=wrapFor(rumor,item.peer);
+await Promise.any(pool.publish(RELAYS,wrapped));
+delete data.pendingReadReceipts[key];
+save();
+}catch(error){
+/* Keep it queued; reconnect/online handling will retry. */
+}finally{
+readReceiptInflight.delete(key);
+}
+}
+}
+
+function receiveReadReceipt(rumor,peer){
+let receipt;
+try{receipt=JSON.parse(rumor.content)}catch{return false}
+if(!receipt||receipt.protocol!=="rustle-read-receipt"||receipt.version!==1)return false;
+if(receipt.recipient!==me||typeof receipt.message_id!=="string")return true;
+if(!/^(?:[0-9a-f]{64}|[0-9a-f]{32})$/.test(receipt.message_id))return true;
+const original=getMessages(peer).find(m=>m&&m.me&&m.id===receipt.message_id);
+if(original&&!original.seen){
+original.seen=true;
+save();
+if(current===peer)renderThread();
+}
+return true;
+}
+
 async function receiveWrap(ev){
 
 if(!ev||ev.kind!==1059||wrapSeen.has(ev.id)||!NT||!sk)return;
@@ -1402,6 +1470,10 @@ peer=rumor.pubkey;
 }
 
 if(!/^[0-9a-f]{64}$/.test(peer)||peer===me)return;
+
+/* Read receipts are control messages, never visible chat messages.
+   The inner rumor is authenticated by the verified NIP-17 seal above. */
+if(!mine&&receiveReadReceipt(rumor,peer))return;
 
 /* already have it (retry, or the copy I sent to myself) */
 
@@ -2091,9 +2163,35 @@ hide("home");
 show("thread");
 
 renderThread();
+flushReadReceipts();
 
 $("txt").focus();
 
+}
+
+/* Mark an incoming message as read only after at least 60% of its
+   bubble is visible in the active conversation while the app is foregrounded. */
+let readMessageObserver=null;
+
+function observeIncomingMessage(node,peer,message){
+if(message.me||message.receiptSent||typeof IntersectionObserver==="undefined")return;
+if(!readMessageObserver){
+readMessageObserver=new IntersectionObserver(entries=>{
+for(const entry of entries){
+if(!entry.isIntersecting||entry.intersectionRatio<0.6||document.hidden)continue;
+const target=entry.target;
+const msg=target.__rustleMessage;
+const targetPeer=target.dataset.peer;
+if(current===targetPeer&&msg&&!msg.me){
+readMessageObserver.unobserve(target);
+queueReadReceipt(targetPeer,msg);
+}
+}
+},{root:$("sc"),threshold:[0.6]});
+}
+node.dataset.peer=peer;
+node.__rustleMessage=message;
+readMessageObserver.observe(node);
 }
 
 /* RENDER CHAT */
@@ -2101,6 +2199,7 @@ $("txt").focus();
 function renderThread(){
 
 if(!current)return;
+if(readMessageObserver){readMessageObserver.disconnect();readMessageObserver=null;}
 
 const box=$("msgs");
 
@@ -2222,8 +2321,9 @@ if(m.image){
 const meta=document.createElement("small");
 
 meta.textContent=fmt(m.t)+(m.me?
-(m.st==="ok"?" · sent":m.st==="failed"?" · not sent":" · sending…")
+(m.st==="ok"?" · "+(m.seen?"✓✓":"✓"):m.st==="failed"?" · not sent":" · sending…")
 :"");
+if(m.me&&m.st==="ok")meta.classList.add("message-ticks");
 
 d.append(meta);
 
@@ -2244,6 +2344,7 @@ meta.append(b);
 }
 
 box.append(d);
+if(!m.me)observeIncomingMessage(d,current,m);
 
 }
 
