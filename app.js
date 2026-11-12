@@ -628,6 +628,7 @@ sub=pool.subscribeMany(
 RELAYS,
 [
 {kinds:[1059],"#p":[me],limit:500},
+{kinds:[SIGNAL_KIND],"#p":[me],since:Math.floor(Date.now()/1000)-300,limit:100},
 {kinds:[4],"#p":[me],limit:500},
 {kinds:[4],authors:[me],limit:500}
 ],
@@ -659,6 +660,151 @@ status("Trying relays…");
 const MAX_MESSAGE=4000;
 const wrapSeen=new Set();
 let reauthTimer=null;
+
+/* Image bytes travel over a direct WebRTC data channel. Relays carry encrypted
+   connection signaling only; image content is never published to a relay. */
+const IMAGE_MAX_BYTES=50*1024*1024, IMAGE_CHUNK=16*1024, SIGNAL_KIND=25050;
+const rtcPeers=new Map();
+const imageDbPromise=new Promise((resolve,reject)=>{
+ const req=indexedDB.open("rustle-local-files-v1",1);
+ req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains("images"))req.result.createObjectStore("images")};
+ req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);
+});
+async function putLocalImage(id,blob){
+ const db=await imageDbPromise;
+ return new Promise((resolve,reject)=>{
+  const tx=db.transaction("images","readwrite");tx.objectStore("images").put(blob,id);
+  tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);
+ });
+}
+async function getLocalImage(id){
+ const db=await imageDbPromise;
+ return new Promise((resolve,reject)=>{
+  const req=db.transaction("images","readonly").objectStore("images").get(id);
+  req.onsuccess=()=>resolve(req.result||null);req.onerror=()=>reject(req.error);
+ });
+}
+function b64(bytes){
+ let s="";for(let i=0;i<bytes.length;i+=0x8000)s+=String.fromCharCode(...bytes.subarray(i,i+0x8000));
+ return btoa(s);
+}
+function unb64(s){
+ const raw=atob(s),out=new Uint8Array(raw.length);
+ for(let i=0;i<raw.length;i++)out[i]=raw.charCodeAt(i);
+ return out;
+}
+async function sendSignal(peer,payload){
+ const content=NT.nip44.encrypt(JSON.stringify(payload),convKey(sk,peer));
+ const event=NT.finalizeEvent({kind:SIGNAL_KIND,created_at:Math.floor(Date.now()/1000),tags:[["p",peer]],content},sk);
+ const results=await Promise.allSettled(pool.publish(RELAYS,event));
+ if(!results.some(x=>x.status==="fulfilled"))throw Error("Could not deliver encrypted connection signal through relays.");
+}
+async function receiveSignal(ev){
+ if(!ev||ev.kind!==SIGNAL_KIND||!NT||!sk||ev.pubkey===me)return;
+ if(!(ev.tags||[]).some(t=>t[0]==="p"&&t[1]===me))return;
+ try{
+  const payload=JSON.parse(NT.nip44.decrypt(ev.content,convKey(sk,ev.pubkey)));
+  if(!payload||payload.v!==1||!["offer","answer"].includes(payload.type))return;
+  if(payload.type==="offer")await answerImagePeer(ev.pubkey,payload.sdp);
+  else{
+   const pc=rtcPeers.get(ev.pubkey)?.pc;
+   if(pc&&pc.signalingState==="have-local-offer")await pc.setRemoteDescription(payload.sdp);
+  }
+ }catch(e){console.warn("RUSTLE image signaling:",e);}
+}
+function waitIceComplete(pc){
+ if(pc.iceGatheringState==="complete")return Promise.resolve();
+ return new Promise(resolve=>{
+  let done=false;
+  const finish=()=>{if(done)return;done=true;clearTimeout(timer);pc.removeEventListener("icegatheringstatechange",check);resolve();};
+  const check=()=>{if(pc.iceGatheringState==="complete")finish();};
+  const timer=setTimeout(finish,10000);pc.addEventListener("icegatheringstatechange",check);
+ });
+}
+function makeRtc(peer){
+ const pc=new RTCPeerConnection({iceServers:[{urls:"stun:stun.l.google.com:19302"}]});
+ const state={pc,channel:null,receiving:null};rtcPeers.set(peer,state);
+ pc.onconnectionstatechange=()=>{if(["failed","closed"].includes(pc.connectionState)&&rtcPeers.get(peer)===state)rtcPeers.delete(peer);};
+ pc.ondatachannel=e=>attachImageChannel(peer,state,e.channel);
+ return state;
+}
+function attachImageChannel(peer,state,channel){
+ state.channel=channel;channel.binaryType="arraybuffer";
+ channel.onmessage=async e=>{
+  try{
+   if(typeof e.data==="string"){
+    const m=JSON.parse(e.data);
+    if(m.type==="image-start"){
+     if(!Number.isInteger(m.size)||m.size<17||m.size>IMAGE_MAX_BYTES+16||!["image/jpeg","image/png"].includes(m.mime))throw Error("Invalid image transfer.");
+     state.receiving={id:m.id,name:String(m.name||"image").slice(0,120),mime:m.mime,size:m.size,key:unb64(m.key),iv:unb64(m.iv),chunks:[],received:0};
+     return;
+    }
+    if(m.type==="image-end"&&state.receiving){
+     const r=state.receiving;state.receiving=null;
+     if(r.received!==r.size)throw Error("Image transfer was incomplete.");
+     const encrypted=new Uint8Array(r.size);let offset=0;
+     for(const chunk of r.chunks){const bytes=new Uint8Array(chunk);encrypted.set(bytes,offset);offset+=bytes.length;}
+     const cryptoKey=await crypto.subtle.importKey("raw",r.key,{name:"AES-GCM"},false,["decrypt"]);
+     const plain=await crypto.subtle.decrypt({name:"AES-GCM",iv:r.iv},cryptoKey,encrypted);
+     const blob=new Blob([plain],{type:r.mime});await putLocalImage(r.id,blob);
+     insertMessage(peer,{id:r.id,me:false,text:"",t:Math.floor(Date.now()/1000),st:"ok",image:{id:r.id,name:r.name,type:r.mime,size:blob.size}});
+     toast("Image received and saved on this device.");
+    }
+    return;
+   }
+   const r=state.receiving;if(!r)return;
+   r.chunks.push(e.data);r.received+=e.data.byteLength;
+   if(r.received>r.size){state.receiving=null;throw Error("Image exceeds expected size.");}
+  }catch(err){console.error("RUSTLE image receive:",err);toast(err.message||"Image receive failed.");}
+ };
+ channel.onopen=()=>toast("Secure direct connection ready.");
+ channel.onclose=()=>{if(rtcPeers.get(peer)===state)rtcPeers.delete(peer);};
+}
+async function answerImagePeer(peer,offer){
+ let state=rtcPeers.get(peer);if(state&&state.pc.signalingState!=="stable")return;
+ state=makeRtc(peer);await state.pc.setRemoteDescription(offer);
+ const answer=await state.pc.createAnswer();await state.pc.setLocalDescription(answer);
+ await waitIceComplete(state.pc);await sendSignal(peer,{v:1,type:"answer",sdp:state.pc.localDescription});
+}
+async function openImageChannel(peer){
+ let state=rtcPeers.get(peer);
+ if(state?.channel?.readyState==="open")return state.channel;
+ if(state){try{state.pc.close()}catch{}rtcPeers.delete(peer);}
+ state=makeRtc(peer);
+ const channel=state.pc.createDataChannel("rustle-images",{ordered:true});attachImageChannel(peer,state,channel);
+ const offer=await state.pc.createOffer();await state.pc.setLocalDescription(offer);
+ await waitIceComplete(state.pc);await sendSignal(peer,{v:1,type:"offer",sdp:state.pc.localDescription});
+ await new Promise((resolve,reject)=>{
+  const timer=setTimeout(()=>reject(Error("Direct connection timed out. Both users must be online and reachable.")),30000);
+  channel.addEventListener("open",()=>{clearTimeout(timer);resolve();},{once:true});
+  channel.addEventListener("error",()=>{clearTimeout(timer);reject(Error("Direct connection failed."));},{once:true});
+ });
+ return channel;
+}
+async function sendImage(file){
+ if(!current||!NT||!pool)return;
+ if(!["image/jpeg","image/png"].includes(file.type)){toast("Choose a JPG or PNG image.");return;}
+ if(file.size<1||file.size>IMAGE_MAX_BYTES){toast("Image must be 50 MB or smaller.");return;}
+ const peer=current,id=hex(crypto.getRandomValues(new Uint8Array(16))),t=Math.floor(Date.now()/1000);
+ insertMessage(peer,{id,me:true,text:"",t,st:"sending",image:{id,name:file.name,type:file.type,size:file.size}});
+ try{
+  const channel=await openImageChannel(peer),raw=await file.arrayBuffer();
+  const keyBytes=crypto.getRandomValues(new Uint8Array(32)),iv=crypto.getRandomValues(new Uint8Array(12));
+  const key=await crypto.subtle.importKey("raw",keyBytes,{name:"AES-GCM"},false,["encrypt"]);
+  const encrypted=new Uint8Array(await crypto.subtle.encrypt({name:"AES-GCM",iv},key,raw));
+  channel.send(JSON.stringify({type:"image-start",id,name:file.name,mime:file.type,size:encrypted.length,key:b64(keyBytes),iv:b64(iv)}));
+  for(let offset=0;offset<encrypted.length;offset+=IMAGE_CHUNK){
+   while(channel.bufferedAmount>512*1024)await new Promise(r=>setTimeout(r,30));
+   channel.send(encrypted.slice(offset,Math.min(offset+IMAGE_CHUNK,encrypted.length)));
+  }
+  channel.send(JSON.stringify({type:"image-end"}));await putLocalImage(id,file);
+  const m=getMessages(peer).find(x=>x.id===id);if(m)m.st="ok";
+  save();renderThread();toast("Original image sent directly.");
+ }catch(e){
+  const m=getMessages(peer).find(x=>x.id===id);if(m)m.st="failed";
+  save();renderThread();toast(e.message||"Image transfer failed.");
+ }
+}
 
 function randomPast(){
 const r=crypto.getRandomValues(new Uint32Array(1))[0]/4294967296;
@@ -792,6 +938,7 @@ renderList();
 function onRelayEvent(ev){
 
 if(ev&&ev.kind===1059)receiveWrap(ev);
+else if(ev&&ev.kind===SIGNAL_KIND)receiveSignal(ev);
 else receive(ev);
 
 }
@@ -1514,9 +1661,20 @@ lastDay=day;
 
 const d=document.createElement("div");
 
-d.className="m"+(m.me?" me":"");
+d.className="m"+(m.me?" me":"")+(m.image?" image-message":"");
 
-d.textContent=m.text;
+if(m.image){
+ const img=document.createElement("img");img.className="shared-image";img.alt=m.image.name||"Shared image";img.loading="lazy";d.append(img);
+ getLocalImage(m.image.id).then(blob=>{if(blob&&img.isConnected)img.src=URL.createObjectURL(blob);}).catch(()=>{});
+ const caption=document.createElement("div");caption.className="image-caption";
+ caption.textContent=m.image.name+" · "+(m.image.size/1024/1024).toFixed(2)+" MB";d.append(caption);
+ const download=document.createElement("a");download.className="image-download";download.textContent="Save original";download.href="#";
+ download.onclick=async e=>{
+  e.preventDefault();const blob=await getLocalImage(m.image.id);
+  if(!blob){toast("Original image is not available on this device.");return;}
+  const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=m.image.name||"rustle-image";a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);
+ };d.append(download);
+}else{d.textContent=m.text;}
 
 const meta=document.createElement("small");
 
@@ -1806,6 +1964,12 @@ $("notice").classList.add("hidden");
 };
 
 $("send").onclick=()=>sendMessage();
+
+$("attachImage").onclick=()=>$("imageInput").click();
+$("imageInput").onchange=async()=>{
+ const file=$("imageInput").files?.[0];$("imageInput").value="";
+ if(file)await sendImage(file);
+};
 
 $("txt").onkeydown=e=>{
 

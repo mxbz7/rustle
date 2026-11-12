@@ -437,3 +437,10 @@ body{background:#16132a}
 .fab{right:calc(50% - 360px)}
 }
 .skel .skmain{flex:1}
+
+/* Original-quality encrypted image attachments */
+.bar .attach{width:42px;height:42px;flex:none;padding:0;border-radius:50%;background:var(--panel2);color:var(--acc);font-size:26px;line-height:1;display:grid;place-items:center}
+.m.image-message{padding:7px;max-width:min(86%,560px)}
+.m .shared-image{display:block;max-width:100%;max-height:420px;object-fit:contain;border-radius:12px;background:#171421}
+.m .image-caption{font-size:13px;overflow-wrap:anywhere;padding:5px 4px 0}
+.m .image-download{display:inline-block;color:#fff;font-size:12px;text-decoration:underline;margin:5px 4px 0}
