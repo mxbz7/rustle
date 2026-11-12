@@ -765,7 +765,11 @@ function relayConnectionSummary(){
 if(!pool||typeof pool.listConnectionStatus!=="function")return {connected:0,total:RELAYS.length};
 const states=pool.listConnectionStatus();
 let connected=0;
-RELAYS.forEach(url=>{if(states.get(url)===true)connected++});
+RELAYS.forEach(url=>{
+let key=url;
+try{key=new URL(url).toString()}catch{}
+if(states.get(key)===true||states.get(url)===true)connected++;
+});
 return {connected,total:RELAYS.length};
 }
 
@@ -809,6 +813,11 @@ if(state.connected<state.total&&!connecting)scheduleRelayRetry();
 
 async function connect(){
 if(!pool||connecting||!navigator.onLine)return;
+if(sub&&(busyImages.size>0||answering.size>0)){
+clearTimeout(connect.defer);
+connect.defer=setTimeout(()=>connect(),4000);
+return;
+}
 connecting=true;
 if(relayRetryTimer){clearTimeout(relayRetryTimer);relayRetryTimer=null}
 status("Connecting to relays…");
@@ -1079,8 +1088,13 @@ function makeRtc(peer,iceServers){
 async function sendSignal(peer,payload){
  const content=NT.nip44.encrypt(JSON.stringify(payload),convKey(sk,peer));
  const event=NT.finalizeEvent({kind:SIGNAL_KIND,created_at:Math.floor(Date.now()/1000),tags:[["p",peer]],content},sk);
- const results=await Promise.allSettled(pool.publish(RELAYS,event));
- if(!results.some(x=>x.status==="fulfilled"))throw Error("Could not reach any relay to start the connection. Check your internet.");
+ const sends=pool.publish(RELAYS,event);
+ sends.forEach(p=>Promise.resolve(p).catch(()=>{}));
+ try{
+  await withTimeout(Promise.any(sends),12000,"timeout");
+ }catch{
+  throw Error("Could not reach any relay to start the connection. Check your internet.");
+ }
 }
 
 async function receiveSignal(ev){
