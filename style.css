@@ -640,3 +640,8 @@ button{min-height:42px}
 #title .verified-badge{width:21px;height:21px}
 .introname+.verified-badge-wrap{margin-left:7px}
 @media(prefers-reduced-motion:no-preference){.verified-badge{animation:rustleVerifiedPulse 3.4s ease-in-out infinite}@keyframes rustleVerifiedPulse{0%,100%{filter:drop-shadow(0 0 3px #a12cff) drop-shadow(0 0 6px #8b2cff88)}50%{filter:drop-shadow(0 0 5px #c16cff) drop-shadow(0 0 11px #8b2cffcc)}}}
+
+/* Keep verified contact name and badge on one aligned row. */
+#csName.introname,#sheetName.introname{display:inline-flex;align-items:center;justify-content:center;gap:7px;flex-wrap:wrap;vertical-align:middle;}
+.threadhead{cursor:pointer;min-width:0;}
+.threadhead:focus-visible{outline:2px solid var(--accent);outline-offset:4px;border-radius:8px;}

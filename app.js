@@ -2987,6 +2987,16 @@ $("back").onclick=back;
 
 $("chatMenu").onclick=contactOptions;
 
+// Tapping the conversation name opens the contact profile/details sheet.
+const threadHead=document.querySelector(".threadhead");
+if(threadHead){
+threadHead.setAttribute("role","button");
+threadHead.setAttribute("tabindex","0");
+threadHead.setAttribute("aria-label","Open contact profile");
+threadHead.addEventListener("click",contactOptions);
+threadHead.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();contactOptions();}});
+}
+
 /* OPEN IDENTITY SHEET */
 
 $("me").onclick=()=>{
