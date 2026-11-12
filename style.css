@@ -15,7 +15,7 @@ color-scheme:dark;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
 input,textarea{ -webkit-user-select:text; user-select:text }
-.message-text{ -webkit-user-select:text; user-select:text; touch-action:pan-y; }
+.message-text{ -webkit-user-select:none; user-select:none; touch-action:pan-y; }
 html,body{height:100%;margin:0;touch-action:manipulation}
 body{
 background:var(--bg);
@@ -543,7 +543,7 @@ input:focus,textarea:focus,.bar input:focus{box-shadow:0 0 0 3px #A78BEA20}
 
 /* Keep selection limited to message bodies; labels, timestamps and navigation stay non-selectable. */
 .m{ -webkit-user-select:none;user-select:none }
-.m .message-text{display:inline-block;max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere;-webkit-user-select:text;user-select:text}
+.m .message-text{display:inline-block;max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere;-webkit-user-select:none;user-select:none}
 .m .message-text.longpress-copy{animation:copy-pulse .22s ease}
 @keyframes copy-pulse{50%{opacity:.65;transform:scale(.99)}}
 .row,.tab,.fab,.image-action{transition:transform .18s cubic-bezier(.2,.8,.2,1),background .2s,opacity .2s}
