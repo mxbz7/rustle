@@ -2140,14 +2140,26 @@ function setTab(name){
 ["Chats","Search"].forEach(t=>$("tab"+t).classList.toggle("active",t.toLowerCase()===name));
 }
 
+/* Name line for list rows: truncating name text + non-interactive verified badge
+   (taps pass through to the row). */
+function nameLine(text,pk){
+const n=el("div","n nline");
+n.append(el("span","nm",text));
+if(isRustleVerified(pk)){
+const wrap=verifiedBadge();
+const btn=wrap.querySelector("button");
+if(btn){btn.tabIndex=-1;btn.setAttribute("aria-hidden","true");}
+n.append(wrap);
+}
+return n;
+}
+
 function personRow(pk,title,sub,btn,onclick){
 const row=el("div","row");
 const av=el("div","avatar");
 paintAvatar(av,pk,title);
 const main=el("div","ctmain");
-const nameNode=el("div","n",title);
-appendVerifiedBadge(nameNode,pk);
-main.append(nameNode,el("div","p",sub));
+main.append(nameLine(title,pk),el("div","p",sub));
 row.append(av,main);
 if(btn){
 const b=el("button","pill",btn);
@@ -2281,10 +2293,8 @@ paintAvatar(av,pk,data.contacts[pk]);
 
 const main=el("div","ctmain");
 
-const nameNode=el("div","n",data.contacts[pk]);
-appendVerifiedBadge(nameNode,pk);
 main.append(
-nameNode,
+nameLine(data.contacts[pk],pk),
 el("div","p",last?(last.me?"You: ":"")+last.text:(pr.u?"@"+pr.u:"No messages yet"))
 );
 

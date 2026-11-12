@@ -101,3 +101,21 @@ Tested (headless Chromium, 360/390/430px, plus a very long display name):
  close works, zero page errors, earlier chat/menu features still pass.
 NOT tested on a real Android device. Username registration, restore and backup
  download were not exercised end to end (they need Supabase / file handling).
+
+
+==================================================================
+UPDATE: VERIFIED BADGE IN CHAT LIST AND SEARCH
+==================================================================
+Files changed: app.js, style.css, sw.js (cache v27 -> v28)
+
+Cause: chat-list and search rows built the name line before attaching it to the
+page, so the badge code did nothing. A shared nameLine() helper now builds the
+name (truncates with an ellipsis) plus the neon-purple badge on the same line.
+Used by: chat list rows, "Chats" results and "People" results in search.
+The badge in rows is display-only: tapping anywhere on the row opens the chat.
+The verification card still opens from the chat header and profile sheets.
+
+Tested (headless Chromium, 360/390/430px): badge shows for the verified contact in
+the chat list, in search Chats and in People rows; unverified contacts show none;
+long names truncate without overflow; tapping the badge opens the chat; earlier
+chat/menu/profile tests still pass. Not tested on a real Android device.

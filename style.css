@@ -702,3 +702,10 @@ button{min-height:42px}
 .pf-id .verified-tooltip:after{top:auto;bottom:100%;border:0;border-left:1px solid #a52cff;border-top:1px solid #a52cff;transform:translate(-50%,5px) rotate(45deg)}
 #sheet .box>.section,.pf-sec-body{grid-template-columns:minmax(0,1fr)}
 #sheet .box{overflow-x:hidden}
+
+/* Verified badge in chat list / search rows */
+.n.nline{display:flex;align-items:center;gap:6px;overflow:visible}
+.nline .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row .verified-badge-wrap{pointer-events:none;margin:-2px 0}
+.row .verified-badge{width:20px;height:20px;min-width:0;min-height:0}
+.row .verified-tooltip{display:none}
