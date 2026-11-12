@@ -1,5 +1,5 @@
 "use strict";
-const CACHE = "rustle-shell-v30";
+const CACHE = "rustle-shell-v33";
 const SHELL = ["./", "./index.html", "./style.css", "./app.js", "./nostr.bundle.js", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./icon-maskable-512.png"];
 self.addEventListener("install", event => {
   event.waitUntil((async () => {
