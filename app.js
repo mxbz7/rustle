@@ -2343,6 +2343,8 @@ box.append(el("div","hintrow","Type at least 2 letters of a @username."));
 
 function openThread(pk){
 
+$("searchPanel").classList.add("hidden");
+$("home").classList.remove("search-mode");
 current=pk;
 
 data.unread[pk]=0;
@@ -2525,7 +2527,15 @@ if(m.image){
   if(d.isConnected)holder.textContent="Could not read this device's image storage.";
  });
 
-}else{d.textContent=m.text;}
+}else{
+ const body=el("span","message-text",m.text);
+ d.append(body);
+ let pressTimer=null, didLongPress=false;
+ const cancelPress=()=>{clearTimeout(pressTimer);pressTimer=null;};
+ body.addEventListener("pointerdown",()=>{didLongPress=false;pressTimer=setTimeout(async()=>{didLongPress=true;body.classList.add("longpress-copy");try{await navigator.clipboard.writeText(m.text);toast("Message copied");}catch{toast("Copy unavailable");}setTimeout(()=>body.classList.remove("longpress-copy"),250);},550);});
+ ["pointerup","pointerleave","pointercancel"].forEach(ev=>body.addEventListener(ev,cancelPress));
+ body.addEventListener("contextmenu",e=>{e.preventDefault();cancelPress();didLongPress=true;navigator.clipboard?.writeText(m.text).then(()=>toast("Message copied")).catch(()=>toast("Copy unavailable"));});
+}
 
 const meta=document.createElement("small");
 
@@ -2723,6 +2733,22 @@ return location.origin+location.pathname+"#add="+encodeURIComponent(npub);
 
 function wire(){
 
+// Prevent accidental selection/copying of interface labels and timestamps.
+// Message bodies retain their dedicated long-press copy action.
+document.addEventListener("copy",e=>{
+ const t=e.target;
+ if(t&&t.closest&&t.closest(".message-text"))return;
+ if(t&&(t.isContentEditable||/^(INPUT|TEXTAREA)$/.test(t.tagName)))return;
+ e.preventDefault();
+});
+document.addEventListener("contextmenu",e=>{
+ const t=e.target;
+ if(t&&t.closest&&t.closest(".message-text"))return;
+ if(t&&(t.isContentEditable||/^(INPUT|TEXTAREA)$/.test(t.tagName)))return;
+ e.preventDefault();
+});
+
+
 $("search").onkeydown=e=>{
 
 if(e.key!=="Enter")return;
@@ -2779,35 +2805,29 @@ if(e.key==="Escape"&&!$("csheet").classList.contains("hidden"))closeContactSheet
 
 });
 
-$("tabChats").onclick=()=>{
+function closeSearchView(){
+  $("searchPanel").classList.add("hidden");
+  $("home").classList.remove("search-mode");
+  $("search").value="";
+  onSearch();
+  $("search").blur();
+  setTab("chats");
+  $("homeScroll").scrollTop=0;
+}
 
-$("search").value="";
-
-onSearch();
-
-$("search").blur();
-
-setTab("chats");
-
-$("homeScroll").scrollTop=0;
-
-};
+$("tabChats").onclick=()=>closeSearchView();
 
 $("tabSearch").onclick=()=>{
-
-setTab("search");
-
-$("search").focus();
-
+  $("searchPanel").classList.remove("hidden");
+  $("home").classList.add("search-mode");
+  setTab("search");
+  setTimeout(()=>$("search").focus(),80);
 };
+$("searchBack").onclick=()=>closeSearchView();
 
 $("tabProfile").onclick=()=>$("me").click();
 
 $("fab").onclick=()=>$("tabSearch").click();
-
-$("search").onfocus=()=>setTab("search");
-
-$("search").onblur=()=>{if(!$("search").value)setTab("chats")};
 
 $("clearSearch").onclick=()=>{
 
