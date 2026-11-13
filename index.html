@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://battrqecbyydvqbzrsxi.supabase.co wss://relay.damus.io wss://nos.lol wss://relay.primal.net wss://relay.nostr.band; manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://battrqecbyydvqbzrsxi.supabase.co wss://relay.damus.io wss://nos.lol wss://relay.primal.net wss://relay.nostr.band; manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#0d0c13">
@@ -77,12 +77,9 @@
 <div id="list"></div>
 </div>
 
-<button id="fab" class="fab hidden" aria-label="New chat"><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 17.25V21h3.75L17.8 9.94l-3.75-3.75zM20.7 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75z"/></svg></button>
-
 <nav class="tabs">
 <button class="tab active" id="tabChats"><svg class="ic-home" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11.2 12 3l9 8.2V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span>Home</span></button>
-<button class="tab" id="tabSearch"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Search</span></button>
-<button class="tab" id="tabNew"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12v5a3 3 0 0 1-3 3H9l-5 3v-3.2A3 3 0 0 1 3 17V7a3 3 0 0 1 3-3h7"/><path d="M8 11h.01M12 11h.01M16 11h.01"/><path d="M19 2v6M16 5h6"/></svg><span>New Chat</span></button>
+<button class="tab" id="tabSearch"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Find</span></button>
 <button class="tab" id="tabProfile"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>Settings</span></button>
 </nav>
 </section>
@@ -111,8 +108,12 @@
 <div class="bar">
 <button id="attachImage" class="attach" type="button" aria-label="Attach image" title="Attach JPG or PNG">＋</button>
 <input id="imageInput" type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" class="hidden">
-<input id="txt" placeholder="Type a message…" autocomplete="off" enterkeyhint="send" maxlength="4000">
+<div class="field"><input id="txt" placeholder="Type a message…" autocomplete="off" enterkeyhint="send" maxlength="4000"><button id="emojiBtn" class="emoji-btn" type="button" aria-label="Emoji" aria-expanded="false" title="Emoji"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M8 14.2c1 1.4 2.4 2.1 4 2.1s3-.7 4-2.1"/><path d="M9 9.5h.01M15 9.5h.01"/></svg></button></div>
 <button id="send" aria-label="Send"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3.4 20.4 21 12 3.4 3.6l.01 6.5L15 12 3.4 13.9z"/></svg></button>
+</div>
+<div id="emojiPanel" class="emoji-panel hidden" role="group" aria-label="Emoji">
+<div class="emoji-tabs" id="emojiTabs"></div>
+<div class="emoji-grid" id="emojiGrid"></div>
 </div>
 </section>
 
@@ -226,7 +227,7 @@
 
 <script src="./nostr.bundle.js"></script>
 
-<script src="./app.js?v=46"></script>
+<script src="./app.js?v=48"></script>
 
 </body>
 </html>
