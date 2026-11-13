@@ -466,6 +466,7 @@ padding:15px 12px;border-radius:14px
 .pf-sec-body{display:grid;gap:8px;padding:0 14px 14px}
 .pf-sec-body .full{background:var(--bg);max-height:96px;overflow:auto}
 .pf-sec-body input{background:var(--bg)}
+.pf-build{text-align:center;color:var(--faint);padding:2px 0 0;font-variant-numeric:tabular-nums}
 .pf-sep{height:1px;background:var(--line);margin:4px 0}
 #sheet #toast:not(:empty){
 position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom));transform:translateX(-50%);

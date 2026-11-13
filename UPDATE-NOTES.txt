@@ -167,3 +167,15 @@ UPDATE: INSTANT PROFILE SYNC (cache v39)
   work even if "Show when I'm online" is off.
 - If the contact is offline or the relay drops the ephemeral event, the 10-minute
   / on-open / on-foreground refresh still catches up.
+
+FIX: contacts added from search never synced renames (cache v40)
+- startChat() saves the contact as the person's display name and syncs at once.
+  With no earlier profile to compare against, that name was mistaken for a manual
+  rename and locked, so only "@username"-named contacts ever updated.
+  applyContactProfile now also treats a name equal to the fetched display name
+  as automatic. Manual renames (Rename contact) and legacy custom names stay.
+
+DIAGNOSTIC (cache v41)
+- Profile sheet footer now shows "Build N · contact signal hh:mm:ss · synced hh:mm:ss":
+  build in use, last "profile changed" signal received, last successful backend
+  fetch of contact profiles (this session only).

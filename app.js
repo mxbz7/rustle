@@ -578,7 +578,7 @@ data.profiles[pk]={...previous,u:username,d:displayName,b:bio,checkedAt:Date.now
 
 if(data.contacts[pk]&&!data.contactNameOverrides[pk]){
 const currentName=String(data.contacts[pk]);
-const generated=/^Friend [0-9a-f]{6}$/i.test(currentName)||currentName==="@"+username||(previous.u&&currentName==="@"+previous.u)||(previous.d&&currentName===previous.d);
+const generated=/^Friend [0-9a-f]{6}$/i.test(currentName)||currentName==="@"+username||(previous.u&&currentName==="@"+previous.u)||(displayName&&currentName===displayName)||(previous.d&&currentName===previous.d);
 /* Existing custom-looking names are conservatively treated as manual names. */
 if(!generated){
 data.contactNameOverrides[pk]=true;
@@ -605,6 +605,7 @@ batch.forEach(pk=>profileSyncPending.delete(pk));
 try{
 const result=await supabaseRequest(SEARCH_FUNCTION,{public_keys:batch});
 const rows=Array.isArray(result.results)?result.results:[];
+syncInfo.fetch=Date.now();renderBuildInfo();
 const found=new Set();
 for(const row of rows){
 if(!row||typeof row.public_key!=="string")continue;
@@ -3026,8 +3027,16 @@ function broadcastProfileChanged(){
  });
 }
 
+const RUSTLE_BUILD=41;
+const syncInfo={ping:0,fetch:0};
+function renderBuildInfo(){
+ const n=$("buildInfo");if(!n)return;
+ const t=ms=>ms?new Date(ms).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit",second:"2-digit"}):"–";
+ n.textContent="Build "+RUSTLE_BUILD+" · contact signal "+t(syncInfo.ping)+" · synced "+t(syncInfo.fetch);
+}
 const profilePingAt=new Map();
 function handleProfilePing(pk){
+ syncInfo.ping=Date.now();renderBuildInfo();
  const last=profilePingAt.get(pk)||0;
  if(Date.now()-last<10000)return;
  profilePingAt.set(pk,Date.now());
@@ -3298,6 +3307,7 @@ threadAvatar.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.p
 
 $("me").onclick=()=>{
 show("sheet");
+renderBuildInfo();
 $("npub").textContent=npub;
 };
 
