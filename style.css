@@ -1,3 +1,6 @@
+/* Inter (self-hosted). Upload InterVariable.woff2 (or Inter.ttf) next to this file.
+   If neither file is present the app simply keeps using the system font. */
+@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url("./InterVariable.woff2") format("woff2"),url("./Inter.ttf") format("truetype")}
 /* RUSTLE — design tokens
    One neutral-violet palette. Surfaces carry almost no chroma; the accent is a
    single muted violet used for actions, active states and the verified seal. */
@@ -32,7 +35,7 @@ html,body{height:100%;margin:0;touch-action:manipulation;overscroll-behavior:non
 body{
 background:var(--bg);
 color:var(--ink);
-font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+font:15px/1.5 "Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
 min-height:var(--app-height);
 padding:0
 }
@@ -221,7 +224,7 @@ transition:border-color .15s
 .searchbox input{border:0;background:transparent;padding:13px 4px;border-radius:0}
 .clear{width:30px;height:30px;min-height:0;padding:0;border-radius:50%;background:var(--surface-2);color:var(--mut);font-size:13px;flex:none}
 @keyframes search-enter{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
-#home.search-mode>.top,#home.search-mode #fab,#home.search-mode .tabs,#home.search-mode #homeScroll .notice{display:none!important}
+#home.search-mode>.top,#home.search-mode .tabs,#home.search-mode #homeScroll .notice{display:none!important}
 #home.search-mode>.search-panel{
 display:block!important;position:relative;z-index:3;flex:none;
 padding:calc(10px + env(safe-area-inset-top)) 14px 12px;
@@ -292,15 +295,6 @@ font-size:12px;font-weight:700
 .state button{width:100%;margin-top:12px}
 .state .alt{margin-top:2px}
 
-.fab{
-position:absolute;right:18px;bottom:calc(92px + env(safe-area-inset-bottom));
-width:56px;height:56px;min-height:0;padding:0;
-border-radius:50%;
-display:grid;place-items:center;
-background:var(--pri);
-box-shadow:0 6px 18px #0009;
-z-index:2
-}
 
 /* bottom navigation */
 .tabs{
@@ -319,9 +313,9 @@ padding:6px 0 10px;
 border-radius:12px;
 background:transparent;
 color:var(--mut);
-font-size:12.5px;font-weight:500
+font-size:13px;font-weight:500
 }
-.tab svg{width:26px;height:26px}
+.tab svg{width:28px;height:28px}
 .tab.active{color:var(--ink)}
 .tab.active svg{color:var(--acc)}
 .tab.active .ic-home path{fill:currentColor}
@@ -607,3 +601,24 @@ body{background:#08070d}
 .app-toast{position:fixed;left:50%;bottom:calc(28px + env(safe-area-inset-bottom));transform:translate(-50%,8px);max-width:calc(100vw - 32px);padding:10px 18px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line-2);color:var(--ink);font-size:13px;box-shadow:0 8px 24px #000a;z-index:60;pointer-events:none;text-align:center;opacity:0;visibility:hidden;transition:opacity .18s ease,transform .18s ease,visibility .18s}
 .app-toast.show{opacity:1;visibility:visible;transform:translate(-50%,0)}
 @media (prefers-reduced-motion:reduce){.app-toast{transition:none}}
+
+/* clearer type */
+body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility;font-optical-sizing:auto}
+.m{font-size:16px;line-height:1.4}
+.m small{font-size:11px}
+
+/* emoji button inside the message field + emoji panel */
+.bar .field{flex:1;min-width:0;position:relative;display:flex}
+.bar .field input{padding-right:52px}
+.emoji-btn{position:absolute;right:5px;top:50%;transform:translateY(-50%);width:38px;height:38px;min-height:0;padding:0;border-radius:50%;background:transparent;color:var(--mut);display:grid;place-items:center}
+.emoji-btn svg{width:24px;height:24px}
+.emoji-btn[aria-expanded="true"]{color:var(--acc)}
+.emoji-panel{flex:none;height:min(300px,42vh);display:flex;flex-direction:column;background:var(--bg);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+.emoji-panel.hidden{display:none}
+.emoji-tabs{flex:none;display:flex;align-items:center;gap:2px;padding:6px 8px;border-bottom:1px solid var(--line)}
+.emoji-tabs button{flex:1;min-height:40px;padding:0;border-radius:10px;background:transparent;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;font-size:21px;line-height:1;opacity:.5}
+.emoji-tabs button.on{opacity:1;background:var(--surface)}
+.emoji-tabs .del{flex:none;width:46px;flex:0 0 46px;opacity:1;color:var(--mut);font-family:inherit;font-size:20px}
+.emoji-grid{flex:1;min-height:0;overflow-y:auto;display:grid;grid-template-columns:repeat(8,1fr);align-content:start;gap:2px;padding:8px;overscroll-behavior:contain;touch-action:pan-y;-webkit-overflow-scrolling:touch}
+.emoji-grid button{min-height:42px;padding:0;border-radius:10px;background:transparent;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;font-size:26px;line-height:1}
+.emoji-grid button:active{background:var(--surface-2)}
