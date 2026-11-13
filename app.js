@@ -28,9 +28,24 @@ const KEY="whisper-v4";
 
 /* Rustle-issued verification registry. Entries are matched against the
    canonical Nostr public key, never a username, display name, or device. */
-const RUSTLE_VERIFIED_USERS=[
+let RUSTLE_VERIFIED_USERS=[
  {npub:"npub1y9xz5m4c5w8qvtjs7fcyr7rjjma83rzm6zh2fyjpq6x4fcklxwdq4t2psc",role:"team"}
 ];
+/* Remote verification list: cached copy first (works offline), then refreshed from
+   the Supabase "verified-list" function. Add/remove rows in the verified_users table. */
+try{
+  const cachedVerified=JSON.parse(localStorage.getItem("rustle-verified")||"null");
+  if(Array.isArray(cachedVerified))RUSTLE_VERIFIED_USERS=cachedVerified;
+}catch{}
+async function loadVerifiedUsers(){
+  try{
+    const r=await supabaseRequest("verified-list",{});
+    if(Array.isArray(r.users)){
+      RUSTLE_VERIFIED_USERS=r.users;
+      localStorage.setItem("rustle-verified",JSON.stringify(r.users));
+    }
+  }catch{}
+}
 const VERIFIED_BADGE_TITLE="Verified Rustle Team Member";
 const VERIFIED_BADGE_MESSAGE="This account is verified and is a part of Rustle development.";
 const VERIFIED_SEAL_SVG='<svg viewBox="0 0 32 32" aria-hidden="true"><path class="verified-seal" d="M16.0 1.3L16.9 1.5L17.8 2.2L18.6 3.1L19.2 4.0L19.8 4.7L20.5 5.2L21.3 5.3L22.2 5.2L23.3 5.0L24.5 4.9L25.6 5.1L26.4 5.6L26.9 6.4L27.1 7.5L27.0 8.7L26.8 9.8L26.7 10.7L26.8 11.5L27.3 12.2L28.0 12.8L28.9 13.4L29.8 14.2L30.5 15.1L30.7 16.0L30.5 16.9L29.8 17.8L28.9 18.6L28.0 19.2L27.3 19.8L26.8 20.5L26.7 21.3L26.8 22.2L27.0 23.3L27.1 24.5L26.9 25.6L26.4 26.4L25.6 26.9L24.5 27.1L23.3 27.0L22.2 26.8L21.3 26.7L20.5 26.8L19.8 27.3L19.2 28.0L18.6 28.9L17.8 29.8L16.9 30.5L16.0 30.7L15.1 30.5L14.2 29.8L13.4 28.9L12.8 28.0L12.2 27.3L11.5 26.8L10.7 26.7L9.8 26.8L8.7 27.0L7.5 27.1L6.4 26.9L5.6 26.4L5.1 25.6L4.9 24.5L5.0 23.3L5.2 22.2L5.3 21.3L5.2 20.5L4.7 19.8L4.0 19.2L3.1 18.6L2.2 17.8L1.5 16.9L1.3 16.0L1.5 15.1L2.2 14.2L3.1 13.4L4.0 12.8L4.7 12.2L5.2 11.5L5.3 10.7L5.2 9.8L5.0 8.7L4.9 7.5L5.1 6.4L5.6 5.6L6.4 5.1L7.5 4.9L8.7 5.0L9.8 5.2L10.7 5.3L11.5 5.2L12.2 4.7L12.8 4.0L13.4 3.1L14.2 2.2L15.1 1.5Z"/><path class="verified-check" d="m10.6 16.4 3.9 3.9 7-8"/></svg>';
@@ -707,6 +722,8 @@ refreshAllProfilesNow();
 if(data.hideNotice)$("notice").classList.add("hidden");
 
 connect();
+
+loadVerifiedUsers().then(renderList);
 
 if(data.username){
 
