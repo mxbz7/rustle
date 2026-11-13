@@ -2457,8 +2457,6 @@ const q=raw.toLowerCase().replace(/^@/,"");
 
 $("notice").classList.toggle("hidden",!!raw||!!data.hideNotice);
 
-$("fab").classList.toggle("hidden",!!raw||!Object.keys(data.contacts).length);
-
 const ids=Object.keys(data.contacts)
 .filter(pk=>{
 if(!q)return true;
@@ -2757,6 +2755,7 @@ scrollThreadToLatest();
 
 function back(){
 
+closeEmojiPanel();
 closeChatMenu();
 current=null;
 
@@ -2998,7 +2997,7 @@ function broadcastProfileChanged(){
  });
 }
 
-const RUSTLE_BUILD=46;
+const RUSTLE_BUILD=48;
 const syncInfo={ping:0,fetch:0,sent:0,sentTo:0};
 function renderBuildInfo(){
  const n=$("buildInfo");if(!n)return;
@@ -3198,10 +3197,6 @@ $("tabSearch").onclick=()=>{
 $("searchBack").onclick=()=>closeSearchView();
 
 $("tabProfile").onclick=()=>$("me").click();
-$("tabNew").onclick=()=>$("tabSearch").click();
-
-$("fab").onclick=()=>$("tabSearch").click();
-
 $("clearSearch").onclick=()=>{
 
 $("search").value="";
@@ -3230,6 +3225,98 @@ $("imageInput").onchange=async()=>{
  const file=$("imageInput").files?.[0];$("imageInput").value="";
  if(file)await sendImage(file);
 };
+
+/* EMOJI PICKER: uses the phone's own emoji, so no emoji font file is needed. */
+const EMOJI_SETS=[
+{icon:"😀",list:"😀 😃 😄 😁 😆 😅 😂 🤣 😊 😇 🙂 🙃 😉 😌 😍 🥰 😘 😗 😙 😚 😋 😛 😜 🤪 😝 🤗 🤭 🤫 🤔 🤐 😐 😑 😶 😏 😒 🙄 😬 🤥 😔 😪 😴 😷 🤒 🤕 🤢 🤮 🥵 🥶 🥴 😵 🤯 🤠 🥳 😎 🤓 🧐 😕 😟 🙁 😮 😯 😲 😳 🥺 😦 😧 😨 😰 😥 😢 😭 😱 😖 😣 😞 😓 😩 😫 🥱 😤 😡 😠 🤬 😈 👿 💀 💩 🤡 👻 👽 🤖"},
+{icon:"👍",list:"👍 👎 👌 ✌️ 🤞 🤟 🤘 🤙 👈 👉 👆 👇 ☝️ ✋ 🤚 🖐️ 🖖 👋 🤝 🙏 ✍️ 💪 👏 🙌 👐 🤲 👊 ✊ 🤛 🤜 🙋 🙆 🙅 🤷 🤦 🙇 💁 👀 👂 👃 👄 👅 🧠"},
+{icon:"❤️",list:"❤️ 🧡 💛 💚 💙 💜 🖤 🤍 🤎 💔 ❣️ 💕 💞 💓 💗 💖 💘 💝 💟 ✨ ⭐ 🌟 💫 🔥 💥 💯 ✅ ❌ ❓ ❗ ⚡ 🎉 🎊 🔔 ♻️ ⚠️ 🚫 ✔️ ➕ ➖ ➡️ ⬅️ ⬆️ ⬇️ 🔴 🟢 🔵 🟡"},
+{icon:"🐶",list:"🐶 🐱 🐭 🐹 🐰 🦊 🐻 🐼 🐨 🐯 🦁 🐮 🐷 🐸 🐵 🙈 🙉 🙊 🐔 🐧 🐦 🦆 🦅 🦉 🐺 🐴 🦄 🐝 🦋 🐌 🐢 🐍 🐙 🐬 🐳 🦈 🌸 🌹 🌻 🌲 🌴 🍀 🌍 🌙 ☀️ ⛅ 🌈 ❄️ 🌊"},
+{icon:"🍔",list:"🍎 🍌 🍉 🍇 🍓 🍒 🍑 🥭 🍍 🥥 🥑 🍅 🥕 🌽 🍞 🧀 🍳 🥞 🍔 🍟 🍕 🌭 🌮 🌯 🍝 🍜 🍣 🍤 🍚 🍦 🍩 🍪 🎂 🍫 🍿 ☕ 🍵 🥤 🍺 🍷"},
+{icon:"⚽",list:"⚽ 🏀 🏏 🏸 🎮 🎯 🎵 🎧 🎤 🎬 📷 📱 💻 ⌚ 🔑 🔒 💡 🔋 💰 💳 🎁 📚 ✏️ 📌 🚗 ✈️ 🚀 🏠 ⏰"}
+];
+let emojiCat=0;
+
+function renderEmojiGrid(){
+  const grid=$("emojiGrid");
+  grid.textContent="";
+  EMOJI_SETS[emojiCat].list.split(" ").forEach(ch=>{
+    const b=document.createElement("button");
+    b.type="button";
+    b.textContent=ch;
+    b.onclick=()=>insertEmoji(ch);
+    grid.append(b);
+  });
+  grid.scrollTop=0;
+  $("emojiTabs").querySelectorAll(".cat").forEach((t,i)=>t.classList.toggle("on",i===emojiCat));
+}
+
+function insertEmoji(ch){
+  const inp=$("txt");
+  const max=inp.maxLength>0?inp.maxLength:4000;
+  if(inp.value.length+ch.length>max)return;
+  const start=inp.selectionStart==null?inp.value.length:inp.selectionStart;
+  const end=inp.selectionEnd==null?start:inp.selectionEnd;
+  inp.setRangeText(ch,start,end,"end");
+  inp.dispatchEvent(new Event("input",{bubbles:true}));
+}
+
+function deleteBeforeCursor(){
+  const inp=$("txt");
+  const end=inp.selectionEnd==null?inp.value.length:inp.selectionEnd;
+  const start=inp.selectionStart==null?end:inp.selectionStart;
+  if(start!==end){
+    inp.setRangeText("",start,end,"end");
+  }else if(start>0){
+    const before=inp.value.slice(0,start);
+    let cut=/[\uD800-\uDBFF][\uDC00-\uDFFF]$/.test(before)?2:1;
+    if(window.Intl&&Intl.Segmenter){
+      const segs=Array.from(new Intl.Segmenter(undefined,{granularity:"grapheme"}).segment(before));
+      if(segs.length)cut=segs[segs.length-1].segment.length;
+    }
+    inp.setRangeText("",start-cut,start,"end");
+  }
+  inp.dispatchEvent(new Event("input",{bubbles:true}));
+}
+
+function emojiPanelOpen(){return !$("emojiPanel").classList.contains("hidden");}
+
+function openEmojiPanel(){
+  $("emojiPanel").classList.remove("hidden");
+  $("emojiBtn").setAttribute("aria-expanded","true");
+  $("txt").blur();
+  setTimeout(()=>scrollThreadToLatest(),60);
+}
+
+function closeEmojiPanel(){
+  $("emojiPanel").classList.add("hidden");
+  $("emojiBtn").setAttribute("aria-expanded","false");
+}
+
+(function initEmojiPicker(){
+  const tabs=$("emojiTabs");
+  EMOJI_SETS.forEach((set,i)=>{
+    const t=document.createElement("button");
+    t.type="button";
+    t.className="cat";
+    t.textContent=set.icon;
+    t.onclick=()=>{emojiCat=i;renderEmojiGrid();};
+    tabs.append(t);
+  });
+  const del=document.createElement("button");
+  del.type="button";
+  del.className="del";
+  del.setAttribute("aria-label","Delete");
+  del.textContent="⌫";
+  del.onclick=deleteBeforeCursor;
+  tabs.append(del);
+  renderEmojiGrid();
+  $("emojiBtn").onclick=()=>{
+    if(emojiPanelOpen()){closeEmojiPanel();$("txt").focus();}
+    else openEmojiPanel();
+  };
+  $("txt").addEventListener("focus",closeEmojiPanel);
+})();
 
 $("txt").onkeydown=e=>{
 
