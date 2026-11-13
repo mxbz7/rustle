@@ -192,3 +192,19 @@ SYNC HARDENING (cache v42)
   request). This works even if the other phone never sends a signal.
 - Profile sheet footer: "Build N · contact signal · synced · sent X @ time".
   "sent 0" means the account that changed has nobody in its list to signal.
+
+FIX: display name not syncing while username did (cache v43)
+- Root cause: old builds auto-locked contact names as "manual" (e.g. when a chat was
+  started from search). The profile record kept updating (so @username synced) but
+  the visible name stayed locked, and the old repair couldn't recognise it because
+  the stored profile name had already moved on.
+- Now only an explicit "Rename contact" locks a name. All old locks are cleared once
+  (data.nameMigV2). Contacts then follow the public profile: display name if set,
+  otherwise @username. One-time side effect: custom names you gave contacts before
+  this build are replaced by their profile name; rename them again if wanted.
+
+REMOVED: CONTACT RENAMING (cache v44)
+- "Rename contact" is gone (menu item, form, handlers, lock flags). A contact's name
+  is always their own public profile: display name, or @username if they have none.
+- Old lock flags are dropped on load. The contact sheet now has Copy public ID and
+  Remove contact only.

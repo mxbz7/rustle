@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>RUSTLE</title>
 
-<link rel="stylesheet" href="./style.css?v=42">
+<link rel="stylesheet" href="./style.css?v=44">
 </head>
 
 <body>
@@ -126,19 +126,8 @@
 </div>
 
 <div class="menu" id="csMenu">
-<button class="menuitem" id="csRename"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/></svg><span>Rename</span></button>
 <button class="menuitem" id="csCopy"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg><span id="csCopyLabel">Copy public ID</span></button>
 <button class="menuitem danger" id="csRemove"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg><span>Remove contact</span></button>
-</div>
-
-<div class="section hidden" id="csRenameBox">
-<label class="username-label" for="csInput">Contact name</label>
-<input id="csInput" maxlength="50" autocomplete="off">
-<div class="hint error" id="csErr"></div>
-<div class="two">
-<button class="alt" id="csRenameCancel">Cancel</button>
-<button id="csRenameSave">Save</button>
-</div>
 </div>
 
 <div class="section hidden" id="csConfirm">
@@ -237,7 +226,7 @@
 
 <script src="./nostr.bundle.js"></script>
 
-<script src="./app.js?v=42"></script>
+<script src="./app.js?v=44"></script>
 
 </body>
 </html>

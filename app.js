@@ -538,7 +538,7 @@ queueProfileSync(pk);
 
 /* CONTACT PROFILE SYNCHRONIZATION
    Public profile data is fetched in batches from quick-worker. A local cache
-   prevents repeated requests; manually renamed contacts are protected. */
+   prevents repeated requests. Contact names always follow the person's own public profile. */
 
 const PROFILE_CACHE_TTL=2*60*1000;
 const PROFILE_BATCH_SIZE=50;
@@ -546,14 +546,8 @@ let profileSyncTimer=null;
 let profileSyncRunning=false;
 const profileSyncPending=new Set();
 
-data.contactNameOverrides=data.contactNameOverrides||{};
-
-/* Repair: older builds wrongly locked auto-named contacts (name equal to their
-   last synced display name) as "manual", so renames never reached them. */
-Object.keys(data.contactNameOverrides).forEach(pk=>{
-const pr=data.profiles&&data.profiles[pk],nm=data.contacts&&data.contacts[pk];
-if(pr&&nm&&(nm===pr.d||nm==="@"+pr.u))delete data.contactNameOverrides[pk];
-});
+/* Contacts can no longer be renamed locally; drop any leftover lock flags from old builds. */
+delete data.contactNameOverrides;
 
 function profileNeedsRefresh(pk){
 const profile=data.profiles[pk];
@@ -576,16 +570,8 @@ const displayName=typeof profile.display_name==="string"?profile.display_name.tr
 const bio=typeof profile.bio==="string"?profile.bio.slice(0,300):"";
 data.profiles[pk]={...previous,u:username,d:displayName,b:bio,checkedAt:Date.now(),missing:false};
 
-if(data.contacts[pk]&&!data.contactNameOverrides[pk]){
-const currentName=String(data.contacts[pk]);
-const generated=/^Friend [0-9a-f]{6}$/i.test(currentName)||currentName==="@"+username||(previous.u&&currentName==="@"+previous.u)||(displayName&&currentName===displayName)||(previous.d&&currentName===previous.d);
-/* Existing custom-looking names are conservatively treated as manual names. */
-if(!generated){
-data.contactNameOverrides[pk]=true;
-}else{
-data.contacts[pk]=displayName||("@"+username);
-}
-}
+/* The contact's name is always their own public profile name. */
+if(data.contacts[pk])data.contacts[pk]=displayName||("@"+username);
 return true;
 }
 
@@ -715,7 +701,6 @@ seen=new Set(
 Object.values(data.messages).flat().map(m=>m.id)
 );
 
-data.contactNameOverrides=data.contactNameOverrides||{};
 renderList();
 refreshAllProfilesNow();
 
@@ -2774,21 +2759,10 @@ function csView(v){
 
 $("csMenu").classList.toggle("hidden",v!=="menu");
 
-$("csRenameBox").classList.toggle("hidden",v!=="rename");
-
 $("csConfirm").classList.toggle("hidden",v!=="confirm");
 
 $("csClose").classList.toggle("hidden",v!=="menu");
 
-if(v==="rename"){
-
-$("csInput").value=data.contacts[current];
-
-$("csErr").textContent="";
-
-setTimeout(()=>{$("csInput").focus();$("csInput").select()},60);
-
-}
 
 }
 
@@ -2819,38 +2793,6 @@ hide("csheet");
 
 }
 
-function saveRename(){
-
-const n=$("csInput").value.trim();
-
-if(!n){
-
-$("csErr").textContent="Name cannot be empty.";
-
-return;
-
-}
-
-data.contacts[current]=n.slice(0,50);
-data.contactNameOverrides=data.contactNameOverrides||{};
-data.contactNameOverrides[current]=true;
-
-save();
-
-setThreadTitle(current);
-
-$("peer").textContent=peerLine(current);
-
-paintAvatar($("tavatar"),current,data.contacts[current]);
-
-renderList();
-
-renderThread();
-
-closeContactSheet();
-
-}
-
 function removeContact(){
 
 (data.messages[current]||[]).forEach(m=>{
@@ -2863,7 +2805,6 @@ delete data.contacts[current];
 delete data.messages[current];
 delete data.unread[current];
 delete data.profiles[current];
-if(data.contactNameOverrides)delete data.contactNameOverrides[current];
 profileSyncPending.delete(current);
 
 save();
@@ -3029,7 +2970,7 @@ function broadcastProfileChanged(){
  });
 }
 
-const RUSTLE_BUILD=42;
+const RUSTLE_BUILD=44;
 const syncInfo={ping:0,fetch:0,sent:0,sentTo:0};
 function renderBuildInfo(){
  const n=$("buildInfo");if(!n)return;
@@ -3169,14 +3110,6 @@ if(t)startChat(t);
 $("csheet").onclick=e=>{if(e.target===$("csheet"))closeContactSheet()};
 
 $("csClose").onclick=closeContactSheet;
-
-$("csRename").onclick=()=>csView("rename");
-
-$("csRenameCancel").onclick=()=>csView("menu");
-
-$("csRenameSave").onclick=saveRename;
-
-$("csInput").onkeydown=e=>{if(e.key==="Enter")saveRename()};
 
 $("csRemove").onclick=()=>csView("confirm");
 
