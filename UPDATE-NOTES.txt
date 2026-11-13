@@ -148,3 +148,22 @@ Tested (headless Chromium, 412px, seeded local data): home, search mode, chat
 thread, header badge card, profile sheet. Zero page errors.
 NOT tested: real Android device, live relays, installed-PWA update. The PNG app
 icons (icon-192/512/maskable) still use the old purple; icon.svg is updated.
+
+UPDATE: CONTACT NAME/USERNAME SYNC (cache v38)
+- Bug: a contact auto-named from the old display name was mistaken for a
+  manually renamed one and locked, so later renames never reached it. Fixed, and
+  previously mis-locked contacts are repaired on load.
+- Profile refresh interval 6h -> 10 min; also refreshes when the app returns to
+  the foreground and when a chat is opened.
+- Contacts you renamed yourself are still never overwritten.
+
+UPDATE: INSTANT PROFILE SYNC (cache v39)
+- After a successful name/username save (both the profile form and the display
+  name dialog), the app sends an encrypted "profile changed" ping to every
+  contact over the same ephemeral channel the online dot uses.
+- The ping carries NO profile data. The receiver only re-fetches that one
+  contact from the backend, so a ping cannot spoof a name. Pings from non-contacts
+  are ignored, repeats from one contact are throttled to one per 10 s, and they
+  work even if "Show when I'm online" is off.
+- If the contact is offline or the relay drops the ephemeral event, the 10-minute
+  / on-open / on-foreground refresh still catches up.

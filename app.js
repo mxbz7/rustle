@@ -414,6 +414,7 @@ data.bio="";
 $("sheetName").textContent=data.displayName||(data.username?"@"+data.username:"Your profile");
 
 save();
+broadcastProfileChanged();
 
 usernameAvailable=false;
 checkedUsername="";
@@ -539,13 +540,20 @@ queueProfileSync(pk);
    Public profile data is fetched in batches from quick-worker. A local cache
    prevents repeated requests; manually renamed contacts are protected. */
 
-const PROFILE_CACHE_TTL=6*60*60*1000;
+const PROFILE_CACHE_TTL=10*60*1000;
 const PROFILE_BATCH_SIZE=50;
 let profileSyncTimer=null;
 let profileSyncRunning=false;
 const profileSyncPending=new Set();
 
 data.contactNameOverrides=data.contactNameOverrides||{};
+
+/* Repair: older builds wrongly locked auto-named contacts (name equal to their
+   last synced display name) as "manual", so renames never reached them. */
+Object.keys(data.contactNameOverrides).forEach(pk=>{
+const pr=data.profiles&&data.profiles[pk],nm=data.contacts&&data.contacts[pk];
+if(pr&&nm&&(nm===pr.d||nm==="@"+pr.u))delete data.contactNameOverrides[pk];
+});
 
 function profileNeedsRefresh(pk){
 const profile=data.profiles[pk];
@@ -570,7 +578,7 @@ data.profiles[pk]={...previous,u:username,d:displayName,b:bio,checkedAt:Date.now
 
 if(data.contacts[pk]&&!data.contactNameOverrides[pk]){
 const currentName=String(data.contacts[pk]);
-const generated=/^Friend [0-9a-f]{6}$/i.test(currentName)||currentName==="@"+username||(previous.u&&currentName==="@"+previous.u);
+const generated=/^Friend [0-9a-f]{6}$/i.test(currentName)||currentName==="@"+username||(previous.u&&currentName==="@"+previous.u)||(previous.d&&currentName===previous.d);
 /* Existing custom-looking names are conservatively treated as manual names. */
 if(!generated){
 data.contactNameOverrides[pk]=true;
@@ -2475,6 +2483,7 @@ box.append(el("div","hintrow","Type at least 2 letters of a @username."));
 /* OPEN CHAT */
 
 function openThread(pk){
+queueProfileSync(pk);
 
 $("searchPanel").classList.add("hidden");
 $("home").classList.remove("search-mode");
@@ -2995,13 +3004,35 @@ function refreshPresenceDots(){
  if(current&&$("peer")&&!$("thread").classList.contains("hidden"))$("peer").textContent=peerLine(current);
 }
 
-function sendPresence(peer,state,wantReply){
+function sendPeerPing(peer,payload){
  try{
   if(!NT||!sk||!pool)return;
-  const content=NT.nip44.encrypt(JSON.stringify({v:1,type:"presence",s:state,r:wantReply?1:0}),convKey(sk,peer));
+  const content=NT.nip44.encrypt(JSON.stringify(payload),convKey(sk,peer));
   const ev=NT.finalizeEvent({kind:PRESENCE_KIND,created_at:Math.floor(Date.now()/1000),tags:[["p",peer]],content},sk);
   pool.publish(RELAYS,ev).forEach(p=>Promise.resolve(p).catch(()=>{}));
  }catch{}
+}
+
+function sendPresence(peer,state,wantReply){
+ sendPeerPing(peer,{v:1,type:"presence",s:state,r:wantReply?1:0});
+}
+
+/* Instant profile sync: tell contacts "my profile changed". The ping carries no
+   profile data; receivers re-fetch from the backend, so it cannot spoof a name. */
+function broadcastProfileChanged(){
+ if(!pool||!navigator.onLine)return;
+ Object.keys(data.contacts||{}).slice(0,PRESENCE_MAX_PEERS).forEach((pk,i)=>{
+  setTimeout(()=>sendPeerPing(pk,{v:1,type:"profile"}),i*120);
+ });
+}
+
+const profilePingAt=new Map();
+function handleProfilePing(pk){
+ const last=profilePingAt.get(pk)||0;
+ if(Date.now()-last<10000)return;
+ profilePingAt.set(pk,Date.now());
+ data.profiles[pk]={...(data.profiles[pk]||{}),checkedAt:0};
+ queueProfileSync(pk);
 }
 
 function broadcastPresence(state,wantReply){
@@ -3023,7 +3054,7 @@ function startPresence(){
 
 function receivePresence(ev){
  if(!ev||ev.kind!==PRESENCE_KIND||!NT||!sk||ev.pubkey===me)return;
- if(!presenceEnabled()||!data.contacts[ev.pubkey])return;
+ if(!data.contacts[ev.pubkey])return;
  if(Math.abs(Date.now()/1000-ev.created_at)>90)return;
  if(!(ev.tags||[]).some(t=>t[0]==="p"&&t[1]===me))return;
  if(presence.ids.has(ev.id))return;
@@ -3032,7 +3063,9 @@ function receivePresence(ev){
  try{
   if(!NT.verifyEvent(ev))return;
   const payload=JSON.parse(NT.nip44.decrypt(ev.content,convKey(sk,ev.pubkey)));
-  if(!payload||payload.v!==1||payload.type!=="presence")return;
+  if(!payload||payload.v!==1)return;
+  if(payload.type==="profile"){handleProfilePing(ev.pubkey);return}
+  if(payload.type!=="presence"||!presenceEnabled())return;
   if(payload.s==="off")presence.seen.delete(ev.pubkey);
   else if(payload.s==="on")presence.seen.set(ev.pubkey,Date.now());
   else return;
@@ -3049,6 +3082,7 @@ function receivePresence(ev){
 
 document.addEventListener("visibilitychange",()=>{
  if(document.hidden)broadcastPresence("off",false);
+ else syncContactProfiles();
 });
 window.addEventListener("pagehide",()=>broadcastPresence("off",false));
 
