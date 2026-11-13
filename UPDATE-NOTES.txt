@@ -179,3 +179,16 @@ DIAGNOSTIC (cache v41)
 - Profile sheet footer now shows "Build N · contact signal hh:mm:ss · synced hh:mm:ss":
   build in use, last "profile changed" signal received, last successful backend
   fetch of contact profiles (this session only).
+
+SYNC HARDENING (cache v42)
+- Verified with a two-account end-to-end test (mock relay + mock backend, real UI
+  flow): registering, first contact, display-name change and username change all
+  reach the other account within about a second.
+- Fixed: a second change within 10 s of the first was silently dropped. Signals are
+  now coalesced into one trailing refresh (never dropped).
+- A signal only reaches contacts the CHANGING account has in its own list. As a
+  safety net every contact is now force-refreshed when the app opens, when it
+  returns to the foreground, and every 2 minutes while visible (one batched
+  request). This works even if the other phone never sends a signal.
+- Profile sheet footer: "Build N · contact signal · synced · sent X @ time".
+  "sent 0" means the account that changed has nobody in its list to signal.

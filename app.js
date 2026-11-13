@@ -540,7 +540,7 @@ queueProfileSync(pk);
    Public profile data is fetched in batches from quick-worker. A local cache
    prevents repeated requests; manually renamed contacts are protected. */
 
-const PROFILE_CACHE_TTL=10*60*1000;
+const PROFILE_CACHE_TTL=2*60*1000;
 const PROFILE_BATCH_SIZE=50;
 let profileSyncTimer=null;
 let profileSyncRunning=false;
@@ -717,7 +717,7 @@ Object.values(data.messages).flat().map(m=>m.id)
 
 data.contactNameOverrides=data.contactNameOverrides||{};
 renderList();
-syncContactProfiles();
+refreshAllProfilesNow();
 
 if(data.hideNotice)$("notice").classList.add("hidden");
 
@@ -777,7 +777,7 @@ syncContactProfiles();
 window.addEventListener("offline",()=>{
 status("Offline · messages saved on this device");
 });
-setInterval(()=>syncContactProfiles(),PROFILE_CACHE_TTL);
+setInterval(()=>{if(!document.hidden)syncContactProfiles()},PROFILE_CACHE_TTL);
 
 }
 
@@ -3022,27 +3022,42 @@ function sendPresence(peer,state,wantReply){
    profile data; receivers re-fetch from the backend, so it cannot spoof a name. */
 function broadcastProfileChanged(){
  if(!pool||!navigator.onLine)return;
- Object.keys(data.contacts||{}).slice(0,PRESENCE_MAX_PEERS).forEach((pk,i)=>{
+ const peers=Object.keys(data.contacts||{}).slice(0,PRESENCE_MAX_PEERS);
+ syncInfo.sent=Date.now();syncInfo.sentTo=peers.length;renderBuildInfo();
+ peers.forEach((pk,i)=>{
   setTimeout(()=>sendPeerPing(pk,{v:1,type:"profile"}),i*120);
  });
 }
 
-const RUSTLE_BUILD=41;
-const syncInfo={ping:0,fetch:0};
+const RUSTLE_BUILD=42;
+const syncInfo={ping:0,fetch:0,sent:0,sentTo:0};
 function renderBuildInfo(){
  const n=$("buildInfo");if(!n)return;
  const t=ms=>ms?new Date(ms).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit",second:"2-digit"}):"–";
- n.textContent="Build "+RUSTLE_BUILD+" · contact signal "+t(syncInfo.ping)+" · synced "+t(syncInfo.fetch);
+ n.textContent="Build "+RUSTLE_BUILD+" · contact signal "+t(syncInfo.ping)+" · synced "+t(syncInfo.fetch)+" · sent "+syncInfo.sentTo+" @ "+t(syncInfo.sent);
 }
 const profilePingAt=new Map();
+const profilePingTimer=new Map();
 function handleProfilePing(pk){
  syncInfo.ping=Date.now();renderBuildInfo();
- const last=profilePingAt.get(pk)||0;
- if(Date.now()-last<10000)return;
- profilePingAt.set(pk,Date.now());
- data.profiles[pk]={...(data.profiles[pk]||{}),checkedAt:0};
- queueProfileSync(pk);
+ /* Never drop a signal: bursts are coalesced into one trailing refresh. */
+ const wait=Math.max(0,3000-(Date.now()-(profilePingAt.get(pk)||0)));
+ clearTimeout(profilePingTimer.get(pk));
+ profilePingTimer.set(pk,setTimeout(()=>{
+  profilePingAt.set(pk,Date.now());
+  data.profiles[pk]={...(data.profiles[pk]||{}),checkedAt:0};
+  queueProfileSync(pk);
+ },wait));
 }
+
+/* Force-refresh every contact (ignores the cache), used when the app is opened/foregrounded. */
+function refreshAllProfilesNow(){
+ Object.keys(data.contacts||{}).forEach(pk=>{
+  if(pk!==me)data.profiles[pk]={...(data.profiles[pk]||{}),checkedAt:0};
+ });
+ syncContactProfiles();
+}
+
 
 function broadcastPresence(state,wantReply){
  if(!presenceEnabled()||!pool||!navigator.onLine)return;
@@ -3091,7 +3106,7 @@ function receivePresence(ev){
 
 document.addEventListener("visibilitychange",()=>{
  if(document.hidden)broadcastPresence("off",false);
- else syncContactProfiles();
+ else refreshAllProfilesNow();
 });
 window.addEventListener("pagehide",()=>broadcastPresence("off",false));
 
