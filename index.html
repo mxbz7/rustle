@@ -209,11 +209,11 @@
     <h2 id="displayNameTitle">Edit display name</h2>
     <p class="hint">This is the name people see in your RUSTLE conversations.</p>
     <label class="username-label" for="displayNameEditInput">Display name</label>
-    <input id="displayNameEditInput" maxlength="50" autocomplete="name" placeholder="Your display name">
-    <div id="displayNameError" class="hint error" aria-live="polite"></div>
-    <div class="two"><button id="displayNameCancel" class="alt" type="button">Cancel</button><button id="displayNameSave" type="button">Save</button></div>
+    <input id="displayNameEditInput" maxlength="50" autocomplete="name" enterkeyhint="done" placeholder="Your display name">
   </div>
 </div>
+
+<div id="appToast" class="app-toast" role="status" aria-live="polite"></div>
 
 <div id="clearChatDialog" class="dialog-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="clearChatTitle">
   <div class="dialog-card">
@@ -226,7 +226,7 @@
 
 <script src="./nostr.bundle.js"></script>
 
-<script src="./app.js?v=44"></script>
+<script src="./app.js?v=46"></script>
 
 </body>
 </html>
