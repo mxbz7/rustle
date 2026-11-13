@@ -133,6 +133,15 @@ clearTimeout(toast.timer);
 toast.timer=setTimeout(()=>$("toast").textContent="",3500);
 }
 
+function flashToast(t){
+const n=$("appToast");
+if(!n)return;
+n.textContent=t;
+n.classList.add("show");
+clearTimeout(flashToast.timer);
+flashToast.timer=setTimeout(()=>n.classList.remove("show"),2200);
+}
+
 function status(t){
 const rel=/^Connected · (\d+)\/(\d+) relays$/.exec(t);
 $("status").textContent=rel?"Connected":t;
@@ -418,15 +427,14 @@ throw new Error(result.error||"Registration failed.");
 
 /* SUCCESS */
 
-$("registrationStatus").className="success";
+$("registrationStatus").className="toast";
 
-$("registrationStatus").textContent=
-"✓ Username @"+username+" registered successfully!";
+$("registrationStatus").textContent="";
 
 data.username=username;
 data.displayName=$("displayNameInput").value.trim();
 data.bio="";
-$("sheetName").textContent=data.displayName||(data.username?"@"+data.username:"Your profile");
+renderMe();
 
 save();
 broadcastProfileChanged();
@@ -435,6 +443,9 @@ usernameAvailable=false;
 checkedUsername="";
 
 setUsernameStatus("success","✓ @"+username+" is your username.");
+
+hide("sheet");
+flashToast("Changes saved");
 
 }catch(e){
 
@@ -2987,7 +2998,7 @@ function broadcastProfileChanged(){
  });
 }
 
-const RUSTLE_BUILD=44;
+const RUSTLE_BUILD=46;
 const syncInfo={ping:0,fetch:0,sent:0,sentTo:0};
 function renderBuildInfo(){
  const n=$("buildInfo");if(!n)return;
@@ -3276,34 +3287,47 @@ renderBuildInfo();
 $("npub").textContent=npub;
 };
 
-/* EDIT DISPLAY NAME FROM THE PROFILE HEADER */
+/* EDIT DISPLAY NAME: a plain text entry. The typed name is staged and is saved
+   by the profile sheet's own "Save changes" button. */
+function previewSheetName(v){
+  const n=$("sheetName");
+  const first=n.firstChild;
+  if(first&&first.nodeType===3)first.nodeValue=v;
+  else n.insertBefore(document.createTextNode(v),first);
+}
+function closeDisplayNameEditor(commit){
+  if(commit){
+    const value=$("displayNameEditInput").value.trim().slice(0,50);
+    if(value){
+      $("displayNameInput").value=value;
+      previewSheetName(value);
+    }
+  }
+  hide("displayNameDialog");
+}
 $("editDisplayName").onclick=()=>{
-  $("displayNameEditInput").value=data.displayName||"";
-  $("displayNameError").textContent=data.username?"":"Register a RUSTLE username before changing your display name.";
-  $("displayNameSave").disabled=!data.username;
+  $("displayNameEditInput").value=$("displayNameInput").value||data.displayName||"";
   show("displayNameDialog");
   setTimeout(()=>$("displayNameEditInput").focus(),60);
 };
-$("displayNameCancel").onclick=()=>hide("displayNameDialog");
-$("displayNameDialog").onclick=e=>{if(e.target.id==="displayNameDialog")hide("displayNameDialog")};
-$("displayNameSave").onclick=async()=>{
-  const value=$("displayNameEditInput").value.trim().slice(0,50);
-  if(!value){$("displayNameError").textContent="Display name cannot be empty.";return;}
-  if(!data.username){$("displayNameError").textContent="Register a RUSTLE username first.";return;}
-  $("displayNameInput").value=value;
-  $("displayNameSave").disabled=true;
-  await registerUsername();
-  if(data.displayName===value)hide("displayNameDialog");
-  else {$("displayNameError").textContent=$("registrationStatus").textContent||"Could not update your display name.";$("displayNameSave").disabled=false;}
+$("displayNameDialog").onclick=e=>{if(e.target.id==="displayNameDialog")closeDisplayNameEditor(true)};
+$("displayNameEditInput").onkeydown=e=>{
+  if(e.key==="Enter"){e.preventDefault();closeDisplayNameEditor(true);}
+  if(e.key==="Escape")closeDisplayNameEditor(false);
 };
-$("displayNameEditInput").onkeydown=e=>{if(e.key==="Enter")$("displayNameSave").click();if(e.key==="Escape")hide("displayNameDialog")};
 
 /* CLOSE */
 
-$("close").onclick=()=>hide("sheet");
+function closeSheet(){
+hide("sheet");
+$("displayNameInput").value=data.displayName||"";
+renderMe();
+}
+
+$("close").onclick=closeSheet;
 
 $("sheet").onclick=e=>{
-if(e.target.id==="sheet")hide("sheet");
+if(e.target.id==="sheet")closeSheet();
 };
 
 /* USERNAME BUTTONS */
