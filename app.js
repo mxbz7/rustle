@@ -670,6 +670,46 @@ paintAvatar($("csAvatar"),current,data.contacts[current]);
 }
 }
 
+/* OWN USERNAME LOOKUP
+   The username lives on the server, tied to the public key. After a reinstall or a
+   key restore this phone has no copy, so it is fetched again. */
+
+async function restoreOwnProfile(){
+
+if(!me||!NT||!navigator.onLine)return;
+
+const mine=me;
+
+try{
+
+const r=await supabaseRequest(SEARCH_FUNCTION,{public_keys:[mine]});
+
+if(me!==mine)return;
+
+const row=(Array.isArray(r.results)?r.results:[]).find(x=>
+x&&typeof x.username==="string"&&
+typeof x.public_key==="string"&&
+x.public_key.toLowerCase()===mine
+);
+
+if(!row)return;
+
+data.username=row.username;
+data.displayName=typeof row.display_name==="string"?row.display_name.trim().slice(0,50):"";
+
+save();
+
+$("usernameInput").value=data.username;
+$("displayNameInput").value=data.displayName;
+
+onUsernameInput();
+
+}catch(e){
+console.warn("RUSTLE own username lookup failed:",e);
+}
+
+}
+
 /* START APPLICATION */
 
 async function boot(){
@@ -733,6 +773,8 @@ refreshAllProfilesNow();
 if(data.hideNotice)$("notice").classList.add("hidden");
 
 connect();
+
+if(!data.username)restoreOwnProfile();
 
 loadVerifiedUsers().then(renderList);
 
@@ -3773,7 +3815,19 @@ setIdentity(secret);
 
 $("restoreKey").value="";
 
+/* drop the old identity's profile, then fetch the restored one */
+delete data.username;
+delete data.displayName;
+delete data.bio;
+$("usernameInput").value="";
+$("displayNameInput").value="";
+$("bioInput").value="";
+save();
+onUsernameInput();
+
 connect();
+
+restoreOwnProfile();
 
 toast("Identity restored.");
 
@@ -3808,134 +3862,4 @@ e.preventDefault();
 deferredInstall=e;
 });
 
-function initLanding(){
-
-const big=$("installBtn");
-const mini=$("installMini");
-const how=$("howto");
-
-try{
-const inv=location.hash.match(/(?:add=)([^&]+)/);
-if(inv&&inv[1].length<=200){
-localStorage.setItem("rustle-pending-invite",inv[1]);
-$("inviteNote").classList.remove("hidden");
-}
-}catch{}
-
-function markInstalled(){
-big.classList.add("done");
-big.querySelector("b").textContent="RUSTLE is installed";
-big.querySelector("small").textContent="Open it from your home screen";
-big.disabled=true;
-mini.classList.add("hidden");
-how.classList.add("hidden");
-}
-
-function showHow(){
-
-const ua=navigator.userAgent;
-
-const ios=/iphone|ipad|ipod/i.test(ua)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
-
-const inApp=/FBAN|FBAV|Instagram|Telegram|; wv\)/i.test(ua);
-
-const steps=inApp
-?["Open this page in <b>Chrome</b> (menu <b>⋮</b> → <b>Open in browser</b>)","Tap <b>Install RUSTLE</b> again"]
-:ios
-?["Tap the <b>Share</b> button in Safari","Choose <b>Add to Home Screen</b>","Tap <b>Add</b>, then open RUSTLE from your home screen"]
-:["Open your browser menu (<b>⋮</b>)","Tap <b>Install app</b> or <b>Add to Home screen</b>","Open RUSTLE from your home screen"];
-
-$("howSteps").innerHTML=steps.map(x=>"<li>"+x+"</li>").join("");
-
-how.classList.remove("hidden");
-
-how.scrollIntoView({behavior:"smooth",block:"nearest"});
-
-}
-
-async function install(){
-
-if(!deferredInstall){
-showHow();
-return;
-}
-
-const p=deferredInstall;
-
-deferredInstall=null;
-
-p.prompt();
-
-const choice=await p.userChoice.catch(()=>null);
-
-if(choice&&choice.outcome==="accepted")markInstalled();
-
-}
-
-big.onclick=install;
-mini.onclick=install;
-
-window.addEventListener("appinstalled",markInstalled);
-
-/* small install pill appears once the big button scrolls out of view */
-
-if("IntersectionObserver"in window){
-
-new IntersectionObserver(([en])=>{
-mini.classList.toggle("show",!en.isIntersecting);
-},{rootMargin:"-64px 0px 0px 0px"}).observe(big);
-
-}else{
-mini.classList.add("show");
-}
-
-addEventListener("scroll",()=>{
-$("sitebar").classList.toggle("scrolled",scrollY>4);
-},{passive:true});
-
-}
-
-/* Prevent accidental page zoom across RUSTLE; photo viewer remains zoomable. */
-(function lockAppZoom(){
-  document.addEventListener("touchmove",function(e){
-    if(e.touches && e.touches.length > 1 && !e.target.closest(".image-viewer:not(.hidden)")) e.preventDefault();
-  },{passive:false});
-  document.addEventListener("gesturestart",function(e){
-    if(!e.target.closest(".image-viewer:not(.hidden)")) e.preventDefault();
-  },{passive:false});
-  document.addEventListener("gesturechange",function(e){
-    if(!e.target.closest(".image-viewer:not(.hidden)")) e.preventDefault();
-  },{passive:false});
-  document.addEventListener("wheel",function(e){
-    if(e.ctrlKey && !e.target.closest(".image-viewer:not(.hidden)")) e.preventDefault();
-  },{passive:false});
-})();
-
-/* APPLICATION START */
-
-const installedApp=
-matchMedia("(display-mode: standalone), (display-mode: fullscreen), (display-mode: minimal-ui)").matches||
-navigator.standalone===true||
-document.referrer.startsWith("android-app://");
-
-if(installedApp||new URLSearchParams(location.search).has("app")){
-
-wire();
-
-boot().catch(error=>{
-  console.error("RUSTLE startup failed:",error);
-  status("RUSTLE could not start. Reload to try again.");
-  show("home");
-  const list=$("list");
-  if(list){list.textContent="";list.append(stateBlock(ICON_WARN,"Could not start RUSTLE","Something went wrong while loading the app. Your locally stored identity and messages have not been intentionally changed.","Reload",()=>location.reload()));}
-});
-
-}else{
-
-document.querySelectorAll("#home,#thread,#sheet,#csheet").forEach(n=>n.remove());
-
-show("landing");
-
-initLanding();
-
-}
+function
