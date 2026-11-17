@@ -2574,12 +2574,39 @@ function setupPhotoGestures(v){
  stage.addEventListener("touchend",()=>{startDistance=0},{passive:true});
 }
 
+/* Keep the newest message in view while the chat settles. Photos, fonts and badges
+   change the height after the first render, so for a short window every size change
+   re-pins the view to the bottom. Any touch/scroll by the user ends the pinning. */
+let threadPin={until:0,ro:null,timer:null,stop:null};
+
 function scrollThreadToLatest(behavior="auto"){
-const sc=$("sc");
+const sc=$("sc"),box=$("msgs");
 if(!sc)return;
 const move=()=>{sc.scrollTop=sc.scrollHeight;};
-// Wait for layout to settle so the newest message is visible on first open.
+move();
 requestAnimationFrame(()=>{move();requestAnimationFrame(move);});
+
+if(threadPin.ro){threadPin.ro.disconnect();threadPin.ro=null;}
+if(threadPin.stop)threadPin.stop();
+clearTimeout(threadPin.timer);
+threadPin.until=Date.now()+2500;
+
+const stop=()=>{
+threadPin.until=0;
+if(threadPin.ro){threadPin.ro.disconnect();threadPin.ro=null;}
+clearTimeout(threadPin.timer);
+["touchstart","wheel","pointerdown","keydown"].forEach(ev=>sc.removeEventListener(ev,stop));
+threadPin.stop=null;
+};
+threadPin.stop=stop;
+["touchstart","wheel","pointerdown","keydown"].forEach(ev=>sc.addEventListener(ev,stop,{passive:true}));
+threadPin.timer=setTimeout(stop,2500);
+
+if(window.ResizeObserver&&box){
+threadPin.ro=new ResizeObserver(()=>{if(Date.now()<threadPin.until)move();});
+threadPin.ro.observe(box);
+threadPin.ro.observe(sc);
+}
 }
 
 function renderThread(){
