@@ -14,7 +14,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>RUSTLE</title>
 
-<link rel="stylesheet" href="./style.css?v=48">
+<script src="./theme-init.js"></script>
+<link rel="stylesheet" href="./style.css?v=49">
 </head>
 
 <body>
@@ -28,7 +29,7 @@
 </header>
 <main>
 <div class="hero">
-<svg class="leaf" viewBox="0 0 110 110" aria-hidden="true"><defs><linearGradient id="lg1" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#6c5bb0"/><stop offset="1" stop-color="#a08fd6"/></linearGradient></defs><path d="M10 100 C 8 56, 40 14, 100 8 C 104 64, 66 104, 10 100 Z" fill="url(#lg1)"/><path d="M14 96 C 36 74, 60 50, 88 24" fill="none" stroke="#0d0c13" stroke-opacity=".5" stroke-width="5" stroke-linecap="round"/><path d="M16 94 L 4 108" fill="none" stroke="#7a69bd" stroke-width="7" stroke-linecap="round"/></svg>
+<svg class="leaf" viewBox="0 0 110 110" aria-hidden="true"><defs><linearGradient id="lg1" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#6c5bb0"/><stop offset="1" stop-color="#a08fd6"/></linearGradient></defs><g class="sway"><path d="M10 100 C 8 56, 40 14, 100 8 C 104 64, 66 104, 10 100 Z" fill="url(#lg1)"/><path d="M14 96 C 36 74, 60 50, 88 24" fill="none" stroke="#0d0c13" stroke-opacity=".5" stroke-width="5" stroke-linecap="round"/><path d="M16 94 L 4 108" fill="none" stroke="#7a69bd" stroke-width="7" stroke-linecap="round"/></g></svg>
 <h1>RUSTLE</h1>
 <p class="tag">Your conversations.<br>Your keys.</p>
 <p class="sub">Private, end-to-end encrypted messaging powered by Nostr.</p>
@@ -54,9 +55,10 @@
 
 <section id="home" class="screen hidden">
 <header class="top">
-<div class="brandwrap"><svg class="logo-mark" viewBox="0 0 110 112" aria-hidden="true"><defs><linearGradient id="lbLeaf" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#7a69bd"/><stop offset="1" stop-color="#a698dc"/></linearGradient></defs><path d="M10 100 C 8 56, 40 14, 100 8 C 104 64, 66 104, 10 100 Z" fill="url(#lbLeaf)"/><path d="M14 96 C 36 74, 60 50, 88 24" fill="none" stroke="#0d0c13" stroke-opacity=".5" stroke-width="5" stroke-linecap="round"/><path d="M16 94 L 4 108" fill="none" stroke="#7a69bd" stroke-width="7" stroke-linecap="round"/></svg><div class="brand">RUSTLE</div></div>
+<div class="brandwrap"><svg class="logo-mark" viewBox="0 0 110 112" aria-hidden="true"><defs><linearGradient id="lbLeaf" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#7a69bd"/><stop offset="1" stop-color="#a698dc"/></linearGradient></defs><g class="sway"><path d="M10 100 C 8 56, 40 14, 100 8 C 104 64, 66 104, 10 100 Z" fill="url(#lbLeaf)"/><path d="M14 96 C 36 74, 60 50, 88 24" fill="none" stroke="#0d0c13" stroke-opacity=".5" stroke-width="5" stroke-linecap="round"/><path d="M16 94 L 4 108" fill="none" stroke="#7a69bd" stroke-width="7" stroke-linecap="round"/></g></svg><div class="brand">RUSTLE</div></div>
 <span class="vsep" aria-hidden="true"></span>
 <div class="statusrow"><i class="dot"></i><div class="stx"><span id="status">Starting…</span><small id="statusSub"></small></div></div>
+<button id="themeToggle" class="theme-toggle" type="button" role="switch" aria-checked="true" aria-label="Dark mode" title="Dark / light mode"><span class="tt-stars" aria-hidden="true"><i></i><i></i><i></i></span><span class="tt-cloud" aria-hidden="true"></span><span class="tt-knob" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><g class="tt-sun"><circle cx="12" cy="12" r="4.6"/><g class="tt-rays"><path d="M12 2.2v2.6M12 19.2v2.6M2.2 12h2.6M19.2 12h2.6M5.1 5.1l1.8 1.8M17.1 17.1l1.8 1.8M5.1 18.9l1.8-1.8M17.1 6.9l1.8-1.8"/></g></g><g class="tt-moon"><path d="M20 14.6A8.6 8.6 0 1 1 9.4 4a7 7 0 0 0 10.6 10.6z"/><circle class="tt-crater" cx="11" cy="13" r="1.3"/><circle class="tt-crater" cx="14.6" cy="16.4" r=".9"/></g></svg></span></button>
 <button id="me" class="avatar sm" aria-label="My profile"></button>
 </header>
 
@@ -243,7 +245,7 @@
 
 <script src="./nostr.bundle.js"></script>
 
-<script src="./app.js?v=57"></script>
+<script src="./app.js?v=58"></script>
 
 </body>
 </html>

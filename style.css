@@ -81,7 +81,7 @@ input:focus,textarea:focus{border-color:var(--acc)}
 position:sticky;top:0;z-index:4;
 display:flex;align-items:center;gap:10px;
 padding:10px 18px;
-background:#0d0c13ee;
+background:color-mix(in srgb,var(--bg) 93%,transparent);
 backdrop-filter:blur(10px);
 border-bottom:1px solid transparent;
 transition:border-color .2s
@@ -549,7 +549,7 @@ transition:opacity .14s ease,transform .16s ease,visibility 0s linear .16s
 /* photos + viewer */
 .m.image-message{width:min(86%,430px);max-width:min(86%,560px);padding:7px;border:1px solid var(--line);background:var(--surface-2);overflow:hidden}
 .m.image-message.me{background:var(--sent);border-color:transparent}
-.m .shared-image{display:block;width:100%;max-width:100%;max-height:440px;object-fit:contain;border-radius:13px;background:#0b0a10;cursor:zoom-in;transition:filter .2s,transform .25s var(--ease)}
+.m .shared-image{display:block;width:100%;max-width:100%;max-height:440px;object-fit:contain;border-radius:13px;background:var(--photo-bg,#0b0a10);cursor:zoom-in;transition:filter .2s,transform .25s var(--ease)}
 .m .shared-image:active{filter:brightness(.88);transform:scale(.99)}
 .m .image-caption{font-size:13px;overflow-wrap:anywhere;padding:5px 4px 0}
 .m .image-download{display:inline-block;color:#fff;font-size:12px;text-decoration:underline;margin:5px 4px 0}
@@ -584,7 +584,7 @@ transition:opacity .14s ease,transform .16s ease,visibility 0s linear .16s
 
 /* desktop: centred phone-width column */
 @media(min-width:700px){
-body{background:#08070d}
+body{background:var(--page-bg,#08070d)}
 #home,#thread{max-width:760px;width:100%;margin:12px auto;height:calc(100dvh - 24px);border:1px solid var(--line);border-radius:18px;box-shadow:0 0 70px #0006}
 .dialog-backdrop{align-items:center}
 }
@@ -671,3 +671,138 @@ box-shadow:0 0 0 1px #00000022 inset
 #list .row .selchk svg{width:14px;height:14px}
 #list .row.selected{background:var(--surface-2);border-color:var(--acc)}
 #list .row.selected .selchk{background:var(--pri);border-color:var(--pri);color:#fff}
+
+
+/* ---------- light theme ----------
+   Dark is the default. The same variables are re-defined for light mode. */
+:root[data-theme="light"]{
+color-scheme:light;
+--bg:#f6f5fb;
+--surface:#ffffff;
+--surface-2:#eceaf6;
+--line:#e2dff0;
+--line-2:#cfcae4;
+--ink:#1b1830;
+--mut:#5f5b78;
+--faint:#8c88a3;
+--pri:#6c5bb0;
+--acc:#5a49a0;
+--sent:#6c5bb0;
+--badge:#6c5bb0;
+--ok:#1f9d63;
+--danger:#c0392b;
+--danger-bg:#c0392b;
+--tap:#0000000d;
+--page-bg:#e9e7f3;
+--photo-bg:#e4e1f1
+}
+:root[data-theme="light"] .m.me{color:#fff}
+:root[data-theme="light"] .m.me small{opacity:.85}
+:root[data-theme="light"] .m .message-ticks{color:#fff}
+:root[data-theme="light"] .m:not(.me) .image-download{color:var(--acc)}
+:root[data-theme="light"] .image-action{background:var(--surface-2);border-color:var(--line-2)}
+:root[data-theme="light"] .dialog-grip{background:#00000026}
+:root[data-theme="light"] #home::before{opacity:.75}
+:root[data-theme="light"] .dialog-backdrop,:root[data-theme="light"] #sheet,:root[data-theme="light"] #csheet{background:#1b183066}
+:root[data-theme="light"] #thread.leaving{box-shadow:-10px 0 40px #0003}
+:root[data-theme="light"] .chat-pop,:root[data-theme="light"] .verified-tooltip,:root[data-theme="light"] .app-toast,:root[data-theme="light"] #sheet #toast:not(:empty){box-shadow:0 10px 28px #1b183030}
+:root[data-theme="light"] .dialog-card{box-shadow:0 18px 50px #1b183040}
+:root[data-theme="light"] .install.done{background:var(--surface)}
+:root[data-theme="light"] .viewer-actions .image-action{color:#fff;background:#ffffff1f;border-color:#ffffff33}
+
+/* smooth cross-fade while the theme is switched */
+html.theme-anim *,html.theme-anim *::before,html.theme-anim *::after{
+transition:background-color .35s ease,color .35s ease,border-color .35s ease,fill .35s ease,stroke .35s ease!important
+}
+
+/* ---------- animated sun / moon switch ---------- */
+.theme-toggle{
+position:relative;flex:none;
+width:46px;height:26px;min-height:0;padding:0;
+border-radius:99px;
+border:1px solid var(--line-2);
+background:#232036;
+overflow:hidden;
+transition:background .4s var(--ease),border-color .4s var(--ease)
+}
+.theme-toggle:active{transform:scale(.95)}
+.tt-knob{
+position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;
+display:grid;place-items:center;
+transform:translateX(20px);
+transition:transform .45s cubic-bezier(.5,.05,.2,1.25)
+}
+.tt-knob svg{display:block;overflow:visible;width:20px;height:20px}
+.tt-sun,.tt-moon{transform-box:fill-box;transform-origin:center;transition:opacity .3s ease,transform .5s var(--ease)}
+.tt-sun{fill:#ffc94a;stroke:#ffc94a;opacity:0;transform:rotate(-90deg) scale(.4)}
+.tt-sun circle{stroke:none}
+.tt-rays{stroke-width:1.9;stroke-linecap:round;fill:none;transform-box:fill-box;transform-origin:center}
+.tt-moon{fill:#ebe8fa;opacity:1;transform:rotate(0) scale(1)}
+.tt-crater{fill:#c3bfdc}
+.tt-stars{position:absolute;inset:0;transition:opacity .35s ease,transform .45s var(--ease)}
+.tt-stars i{position:absolute;width:3px;height:3px;border-radius:50%;background:#fff;animation:twinkle 2.6s ease-in-out infinite}
+.tt-stars i:nth-child(1){left:8px;top:7px}
+.tt-stars i:nth-child(2){left:15px;top:17px;width:2px;height:2px;animation-delay:.8s}
+.tt-stars i:nth-child(3){left:23px;top:9px;width:2px;height:2px;animation-delay:1.5s}
+@keyframes twinkle{0%,100%{opacity:.35}50%{opacity:1}}
+.tt-cloud{
+position:absolute;right:6px;bottom:5px;width:14px;height:5px;border-radius:99px;background:#fff;
+opacity:0;transform:translateX(14px);
+transition:opacity .35s ease,transform .5s var(--ease)
+}
+.tt-cloud::before{content:"";position:absolute;left:3px;top:-3px;width:7px;height:7px;border-radius:50%;background:#fff}
+
+:root[data-theme="light"] .theme-toggle{background:#bcdcff;border-color:#98c2f3}
+:root[data-theme="light"] .tt-knob{transform:translateX(0)}
+:root[data-theme="light"] .tt-sun{opacity:1;transform:rotate(0) scale(1)}
+:root[data-theme="light"] .tt-rays{animation:spin-rays 9s linear infinite}
+:root[data-theme="light"] .tt-moon{opacity:0;transform:rotate(60deg) scale(.4)}
+:root[data-theme="light"] .tt-stars{opacity:0;transform:translateY(-8px)}
+:root[data-theme="light"] .tt-cloud{opacity:.95;transform:none}
+@keyframes spin-rays{to{transform:rotate(360deg)}}
+.theme-toggle:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+
+/* ---------- breezing leaf ---------- */
+.logo-mark .sway,.hero .leaf .sway{
+transform-box:view-box;
+transform-origin:8px 104px;
+animation:breeze 6.5s ease-in-out infinite
+}
+.hero .leaf .sway{animation-duration:7s}
+@keyframes breeze{
+0%{transform:rotate(0)}
+14%{transform:rotate(-3.2deg)}
+30%{transform:rotate(2.4deg)}
+44%{transform:rotate(-1.6deg)}
+50%{transform:rotate(3.4deg)}
+52.5%{transform:rotate(-2.8deg)}
+55%{transform:rotate(2.6deg)}
+57.5%{transform:rotate(-2deg)}
+60%{transform:rotate(1.2deg)}
+63%{transform:rotate(0)}
+80%{transform:rotate(-1.4deg)}
+100%{transform:rotate(0)}
+}
+/* flutters faster while the app is still connecting */
+#home:has(.statusrow:not(.ok)) .logo-mark .sway{animation-duration:2.6s}
+@media (prefers-reduced-motion:reduce){
+.logo-mark .sway,.hero .leaf .sway,.tt-stars i,:root[data-theme="light"] .tt-rays{animation:none!important}
+}
+
+/* header: leave room for the switch */
+#home>.top{gap:8px}
+#home>.top .brand{font-size:22px}
+#home>.top .logo-mark{width:30px;height:30px}
+#home>.top .vsep{margin:8px 0}
+#home>.top #status{font-size:14px}
+#home>.top #statusSub{font-size:12px}
+@media(max-width:380px){
+#home>.top .vsep{display:none}
+#home>.top .brand{font-size:20px}
+#home>.top .logo-mark{width:28px;height:28px}
+#home>.top #status{font-size:13px}
+}
+@media(max-width:365px){
+#home>.top #status{font-size:12px}
+#home>.top .statusrow{gap:7px}
+}

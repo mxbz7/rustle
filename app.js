@@ -144,7 +144,9 @@ flashToast.timer=setTimeout(()=>n.classList.remove("show"),2200);
 
 function status(t){
 const rel=/^Connected · (\d+)\/(\d+) relays$/.exec(t);
-$("status").textContent=rel?"Connected":t;
+/* short wording so the header also has room for the theme switch */
+const short={"Reconnecting to relays…":"Connecting…","Connecting to relays…":"Connecting…","Trying relays…":"Connecting…"};
+$("status").textContent=rel?"Connected":(short[t]||t);
 if($("statusSub"))$("statusSub").textContent=rel?"via "+rel[1]+" relay"+(rel[1]==="1"?"":"s"):"";
 $("status").closest(".statusrow").classList.toggle("ok",/^Connected/.test(t));
 }
@@ -160,6 +162,34 @@ $(id).classList.add("hidden");
 function save(){
 db.write();
 renderMe();
+}
+
+/* THEME (dark / light) */
+
+function currentTheme(){
+return document.documentElement.getAttribute("data-theme")==="light"?"light":"dark";
+}
+
+function applyTheme(t,animate){
+const root=document.documentElement;
+if(animate){
+root.classList.add("theme-anim");
+clearTimeout(applyTheme.timer);
+applyTheme.timer=setTimeout(()=>root.classList.remove("theme-anim"),450);
+}
+root.setAttribute("data-theme",t);
+try{localStorage.setItem("rustle-theme",t)}catch{}
+const m=document.querySelector('meta[name="theme-color"]');
+if(m)m.setAttribute("content",t==="light"?"#f6f5fb":"#0d0c13");
+const b=$("themeToggle");
+if(b){
+b.setAttribute("aria-checked",t==="dark"?"true":"false");
+b.setAttribute("aria-label",t==="dark"?"Dark mode on. Switch to light mode":"Light mode on. Switch to dark mode");
+}
+}
+
+function toggleTheme(){
+applyTheme(currentTheme()==="dark"?"light":"dark",true);
 }
 
 /* SUPABASE REQUEST */
@@ -3339,6 +3369,10 @@ function setShowOnline(on){
 /* EVENTS */
 
 function wire(){
+
+applyTheme(currentTheme(),false);
+
+$("themeToggle").onclick=toggleTheme;
 
 // Keep the app viewport aligned with the visible Android viewport when the keyboard opens.
 const syncVisibleViewport=()=>{
