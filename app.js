@@ -2517,10 +2517,6 @@ paintAvatar($("tavatar"),pk,data.contacts[pk]);
 hide("home");
 show("thread");
 
-if(!threadEntry){
-try{history.pushState({rustle:"thread"},"");threadEntry=true;}catch{}
-}
-
 renderThread();
 flushReadReceipts();
 
@@ -2772,11 +2768,8 @@ function closeEmojiPanel(){
   $("emojiBtn").setAttribute("aria-expanded","false");
 }
 
-/* Back navigation.
-   Opening a chat pushes one history entry, so the system back gesture / button
-   returns to the chat list instead of closing the installed app. */
-let threadEntry=false;
-
+/* Back navigation: see navHistory() inside wire(). Closing the chat just hides it;
+   the history entry is reconciled automatically. */
 function closeThreadView(){
 
 closeEmojiPanel();
@@ -2796,38 +2789,7 @@ function back(){
 
 closeThreadView();
 
-if(threadEntry){
-threadEntry=false;
-try{history.back();}catch{}
 }
-
-}
-
-/* Closes the top-most overlay, if any. Returns true when one was closed. */
-function closeTopOverlay(){
-const iv=document.getElementById("imageViewer");
-if(iv&&!iv.classList.contains("hidden")){closeImageViewer(iv);return true;}
-if(!$("clearChatDialog").classList.contains("hidden")){closeClearChatDialog();return true;}
-const dn=$("displayNameDialog");
-if(dn&&!dn.classList.contains("hidden")){closeDisplayNameEditor(true);return true;}
-if(chatMenuIsOpen()){closeChatMenu();return true;}
-if(!$("csheet").classList.contains("hidden")){closeContactSheet();return true;}
-if(!$("sheet").classList.contains("hidden")){hide("sheet");return true;}
-if(!$("emojiPanel").classList.contains("hidden")){closeEmojiPanel();return true;}
-return false;
-}
-
-window.addEventListener("popstate",()=>{
-threadEntry=false;
-if(!current)return;
-if(closeTopOverlay()){
-/* The chat is still open: restore its history entry so the next back goes to the list. */
-history.pushState({rustle:"thread"},"");
-threadEntry=true;
-return;
-}
-closeThreadView();
-});
 
 /* CONTACT OPTIONS */
 
@@ -3380,6 +3342,57 @@ sendMessage();
 $("search").oninput=onSearch;
 
 $("back").onclick=e=>{e.preventDefault();back();};
+
+/* SYSTEM BACK (swipe / button) NAVIGATION
+   Every "layer" that is open on top of the chat list (search, chat, profile sheet,
+   contact sheet, dialogs, menus, photo viewer, emoji panel) owns one history entry.
+   The system back gesture closes the top-most layer; the app only exits when the
+   chat list is showing with nothing open. Entries are kept in sync by watching the
+   DOM, so every existing open/close path works without being changed one by one. */
+(function navHistory(){
+let pushed=0,ignore=0,queued=false;
+const hiddenEl=id=>{const n=$(id);return !n||n.classList.contains("hidden");};
+const viewer=()=>document.getElementById("imageViewer");
+const layers=[ /* top-most first: [isOpen, close] */
+[()=>{const v=viewer();return !!v&&!v.classList.contains("hidden");},()=>closeImageViewer(viewer())],
+[()=>!hiddenEl("clearChatDialog"),()=>closeClearChatDialog()],
+[()=>!hiddenEl("displayNameDialog"),()=>closeDisplayNameEditor(false)],
+[()=>chatMenuIsOpen(),()=>closeChatMenu()],
+[()=>!hiddenEl("csheet"),()=>closeContactSheet()],
+[()=>!hiddenEl("sheet"),()=>closeSheet()],
+[()=>!hiddenEl("emojiPanel"),()=>closeEmojiPanel()],
+[()=>!hiddenEl("thread"),()=>closeThreadView()],
+[()=>$("home").classList.contains("search-mode"),()=>closeSearchView()]
+];
+const depth=()=>layers.filter(l=>l[0]()).length;
+function reconcile(){
+queued=false;
+const d=depth();
+try{
+if(d>pushed){
+for(;pushed<d;pushed++)history.pushState({rustle:pushed+1},"");
+}else if(d<pushed){
+const n=pushed-d;
+pushed=d;
+ignore++;
+history.go(-n);
+}
+}catch{}
+}
+function schedule(){
+if(queued)return;
+queued=true;
+queueMicrotask(reconcile);
+}
+new MutationObserver(schedule).observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:["class"]});
+window.addEventListener("popstate",()=>{
+if(ignore>0){ignore--;return;}
+if(pushed>0)pushed--;
+const top=layers.find(l=>l[0]());
+if(top)top[1]();
+schedule();
+});
+})();
 
 /* Three-dot menu: compact floating menu anchored inside the conversation screen. */
 $("chatMenu").onclick=e=>{
