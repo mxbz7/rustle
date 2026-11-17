@@ -2517,6 +2517,10 @@ paintAvatar($("tavatar"),pk,data.contacts[pk]);
 hide("home");
 show("thread");
 
+if(!threadEntry){
+try{history.pushState({rustle:"thread"},"");threadEntry=true;}catch{}
+}
+
 renderThread();
 flushReadReceipts();
 
@@ -2753,7 +2757,12 @@ scrollThreadToLatest();
 
 /* NAVIGATION */
 
-function back(){
+/* Back navigation.
+   Opening a chat pushes one history entry, so the system back gesture / button
+   returns to the chat list instead of closing the installed app. */
+let threadEntry=false;
+
+function closeThreadView(){
 
 closeEmojiPanel();
 closeChatMenu();
@@ -2767,6 +2776,43 @@ show("home");
 renderList();
 
 }
+
+function back(){
+
+closeThreadView();
+
+if(threadEntry){
+threadEntry=false;
+try{history.back();}catch{}
+}
+
+}
+
+/* Closes the top-most overlay, if any. Returns true when one was closed. */
+function closeTopOverlay(){
+const iv=document.getElementById("imageViewer");
+if(iv&&!iv.classList.contains("hidden")){closeImageViewer(iv);return true;}
+if(!$("clearChatDialog").classList.contains("hidden")){closeClearChatDialog();return true;}
+const dn=$("displayNameDialog");
+if(dn&&!dn.classList.contains("hidden")){closeDisplayNameEditor(true);return true;}
+if(chatMenuIsOpen()){closeChatMenu();return true;}
+if(!$("csheet").classList.contains("hidden")){closeContactSheet();return true;}
+if(!$("sheet").classList.contains("hidden")){hide("sheet");return true;}
+if(!$("emojiPanel").classList.contains("hidden")){closeEmojiPanel();return true;}
+return false;
+}
+
+window.addEventListener("popstate",()=>{
+threadEntry=false;
+if(!current)return;
+if(closeTopOverlay()){
+/* The chat is still open: restore its history entry so the next back goes to the list. */
+history.pushState({rustle:"thread"},"");
+threadEntry=true;
+return;
+}
+closeThreadView();
+});
 
 /* CONTACT OPTIONS */
 
@@ -3332,7 +3378,7 @@ sendMessage();
 
 $("search").oninput=onSearch;
 
-$("back").onclick=back;
+$("back").onclick=e=>{e.preventDefault();back();};
 
 /* Three-dot menu: compact floating menu anchored inside the conversation screen. */
 $("chatMenu").onclick=e=>{
