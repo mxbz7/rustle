@@ -59,6 +59,9 @@ const PRESENCE_INTERVAL=25000;
 const PRESENCE_TTL=65000;
 const PRESENCE_MAX_PEERS=60;
 const presence={seen:new Map(),ids:new Set(),repliedAt:new Map(),timer:null,sweep:null};
+/* TYPING INDICATOR: rides on the same encrypted ephemeral pings as presence */
+const TYPING_TTL=5000,TYPING_SEND_GAP=3000;
+const typing={seen:new Map(),timers:new Map(),sentAt:0,sentTo:null};
 
 const db={
 read(){
@@ -1393,6 +1396,7 @@ async function handleChannelMessage(peer,st,e){
       image:{rid:r.id,name:r.name,type,size:plain.length}
      });
 
+     setTyping(peer,false);
      if(peer!==current){
       data.unread[peer]=(data.unread[peer]||0)+1;
       save();
@@ -1805,6 +1809,7 @@ t:Math.min(rumor.created_at,Math.floor(Date.now()/1000)+300),
 st:"ok"
 });
 
+if(!mine)setTyping(peer,false);
 if(!mine&&peer!==current){
 
 data.unread[peer]=(data.unread[peer]||0)+1;
@@ -1930,6 +1935,7 @@ t:ev.created_at,
 st:"ok"
 });
 
+if(ev.pubkey!==me)setTyping(peer,false);
 if(peer!==current&&ev.pubkey!==me){
 
 data.unread[peer]=(data.unread[peer]||0)+1;
@@ -2476,6 +2482,7 @@ const last=a.at(-1);
 const pr=data.profiles[pk]||{};
 
 const row=el("div","row"+(data.unread[pk]?" unread":""));
+row.dataset.pk=pk;
 
 const av=el("div","avatar");
 paintAvatar(av,pk,data.contacts[pk]);
@@ -2484,7 +2491,11 @@ const main=el("div","ctmain");
 
 main.append(
 nameLine(data.contacts[pk],pk),
-el("div","p",last?(last.me?"You: ":"")+last.text:(pr.u?"@"+pr.u:"No messages yet"))
+(()=>{
+const p=el("div","p",last?(last.me?"You: ":"")+last.text:(pr.u?"@"+pr.u:"No messages yet"));
+if(isTyping(pk)){p.dataset.prev=p.textContent;p.textContent="typing";p.classList.add("is-typing")}
+return p;
+})()
 );
 
 const meta=el("div","ctmeta");
@@ -2703,7 +2714,7 @@ const pr=data.profiles[pk]||{};
 setThreadTitle(pk);
 closeChatMenu();
 
-$("peer").textContent=peerLine(pk);
+paintPeerLine();
 
 paintAvatar($("tavatar"),pk,data.contacts[pk]);
 
@@ -2970,6 +2981,8 @@ if(!m.me)observeIncomingMessage(d,current,m);
 
 scrollThreadToLatest();
 
+
+syncTypingBubble();
 }
 
 /* NAVIGATION */
@@ -3245,8 +3258,75 @@ function isOnline(pk){
  return !!t&&Date.now()-t<PRESENCE_TTL;
 }
 
+function isTyping(pk){
+ const t=typing.seen.get(pk);
+ return !!t&&Date.now()-t<TYPING_TTL&&presenceEnabled();
+}
+
 function peerLine(pk){
+ if(pk!==me&&isTyping(pk))return "typing";
  return isOnline(pk)&&pk!==me?"Online":subtitleFor(pk);
+}
+
+function paintPeerLine(){
+ const p=$("peer");if(!p||!current)return;
+ p.textContent=peerLine(current);
+ p.classList.toggle("is-typing",current!==me&&isTyping(current));
+}
+
+/* WhatsApp-style bouncing-dots bubble at the end of the open conversation */
+function syncTypingBubble(){
+ const box=$("msgs");if(!box)return;
+ let b=$("typingBubble");
+ const show=!!current&&current!==me&&isTyping(current)&&!$("thread").classList.contains("hidden");
+ if(!show){if(b)b.remove();return}
+ const sc=$("sc");
+ const nearBottom=!sc||sc.scrollHeight-sc.scrollTop-sc.clientHeight<140;
+ if(!b){
+  b=el("div","typing-bubble");
+  b.id="typingBubble";
+  b.setAttribute("aria-label","typing");
+  b.append(el("i"),el("i"),el("i"));
+ }
+ if(box.lastElementChild!==b){box.append(b);if(nearBottom)scrollThreadToLatest()}
+}
+
+function setTyping(pk,on){
+ clearTimeout(typing.timers.get(pk));
+ if(on){
+  typing.seen.set(pk,Date.now());
+  typing.timers.set(pk,setTimeout(()=>setTyping(pk,false),TYPING_TTL));
+ }else{
+  typing.seen.delete(pk);typing.timers.delete(pk);
+ }
+ if(current===pk&&!$("thread").classList.contains("hidden")){paintPeerLine();syncTypingBubble()}
+ if(!$("home").classList.contains("hidden"))renderListTypingOnly();
+}
+
+/* update only the preview lines in the chat list, no full re-render */
+function renderListTypingOnly(){
+ document.querySelectorAll("#list .row[data-pk]").forEach(r=>{
+  const p=r.querySelector(".ctmain .p");if(!p)return;
+  const pk=r.dataset.pk;
+  if(isTyping(pk)){
+   if(!p.classList.contains("is-typing")){p.dataset.prev=p.textContent;p.textContent="typing";p.classList.add("is-typing")}
+  }else if(p.classList.contains("is-typing")){
+   p.textContent=p.dataset.prev||"";p.classList.remove("is-typing");delete p.dataset.prev;
+  }
+ });
+}
+
+function sendTyping(on){
+ if(!current||current===me||!presenceEnabled()||!navigator.onLine)return;
+ const now=Date.now();
+ if(on){
+  if(typing.sentTo===current&&now-typing.sentAt<TYPING_SEND_GAP)return;
+  typing.sentAt=now;typing.sentTo=current;
+  sendPeerPing(current,{v:1,type:"typing",s:1});
+ }else if(typing.sentTo){
+  const to=typing.sentTo;typing.sentTo=null;typing.sentAt=0;
+  sendPeerPing(to,{v:1,type:"typing",s:0});
+ }
 }
 
 function refreshPresenceDots(){
@@ -3256,7 +3336,7 @@ function refreshPresenceDots(){
   if(on&&!dot)n.append(el("i","online-dot"));
   else if(!on&&dot)dot.remove();
  });
- if(current&&$("peer")&&!$("thread").classList.contains("hidden"))$("peer").textContent=peerLine(current);
+ if(current&&$("peer")&&!$("thread").classList.contains("hidden"))paintPeerLine();
 }
 
 function sendPeerPing(peer,payload){
@@ -3343,6 +3423,10 @@ function receivePresence(ev){
   const payload=JSON.parse(NT.nip44.decrypt(ev.content,convKey(sk,ev.pubkey)));
   if(!payload||payload.v!==1)return;
   if(payload.type==="profile"){handleProfilePing(ev.pubkey);return}
+  if(payload.type==="typing"){
+   if(presenceEnabled())setTyping(ev.pubkey,payload.s===1);
+   return;
+  }
   if(payload.type!=="presence"||!presenceEnabled())return;
   if(payload.s==="off")presence.seen.delete(ev.pubkey);
   else if(payload.s==="on")presence.seen.set(ev.pubkey,Date.now());
@@ -3508,7 +3592,11 @@ $("notice").classList.add("hidden");
 
 };
 
-$("send").onclick=()=>sendMessage();
+$("send").onclick=()=>{sendTyping(false);sendMessage()};
+$("txt").addEventListener("input",()=>{
+ if($("txt").value.trim())sendTyping(true);else sendTyping(false);
+});
+$("txt").addEventListener("blur",()=>sendTyping(false));
 
 $("attachImage").onclick=()=>$("imageInput").click();
 $("imageInput").onchange=async()=>{
