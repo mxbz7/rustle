@@ -2318,49 +2318,49 @@ openThread(pk);
 
 /* MULTI-SELECT (long-press a chat) */
 
-const sel={on:false,set:new Set(),visible:[],ignoreClickUntil:0};
+const rustleSel={on:false,set:new Set(),visible:[],ignoreClickUntil:0};
 
 function updateSelectBar(){
-const n=sel.set.size;
+const n=rustleSel.set.size;
 $("selCount").textContent=n+" selected";
 $("selDelete").disabled=!n;
-const all=sel.visible.length>0&&sel.visible.every(pk=>sel.set.has(pk));
+const all=rustleSel.visible.length>0&&rustleSel.visible.every(pk=>rustleSel.set.has(pk));
 $("selAll").textContent=all?"Deselect all":"Select all";
 }
 
 function enterSelectMode(pk){
-sel.on=true;
-sel.set=new Set(pk?[pk]:[]);
+rustleSel.on=true;
+rustleSel.set=new Set(pk?[pk]:[]);
 $("home").classList.add("select-mode");
 renderList();
 }
 
 function exitSelectMode(){
-if(!sel.on)return;
-sel.on=false;
-sel.set.clear();
+if(!rustleSel.on)return;
+rustleSel.on=false;
+rustleSel.set.clear();
 $("home").classList.remove("select-mode");
 closeDeleteChatsDialog();
 renderList();
 }
 
 function toggleSelected(pk){
-if(sel.set.has(pk))sel.set.delete(pk);
-else sel.set.add(pk);
-if(!sel.set.size){exitSelectMode();return;}
+if(rustleSel.set.has(pk))rustleSel.set.delete(pk);
+else rustleSel.set.add(pk);
+if(!rustleSel.set.size){exitSelectMode();return;}
 renderList();
 }
 
 function toggleSelectAll(){
-const all=sel.visible.length>0&&sel.visible.every(pk=>sel.set.has(pk));
-if(all)sel.visible.forEach(pk=>sel.set.delete(pk));
-else sel.visible.forEach(pk=>sel.set.add(pk));
-if(!sel.set.size){exitSelectMode();return;}
+const all=rustleSel.visible.length>0&&rustleSel.visible.every(pk=>rustleSel.set.has(pk));
+if(all)rustleSel.visible.forEach(pk=>rustleSel.set.delete(pk));
+else rustleSel.visible.forEach(pk=>rustleSel.set.add(pk));
+if(!rustleSel.set.size){exitSelectMode();return;}
 renderList();
 }
 
 function openDeleteChatsDialog(){
-const n=sel.set.size;
+const n=rustleSel.set.size;
 if(!n)return;
 $("deleteChatsTitle").textContent=n===1?"Delete 1 chat?":"Delete "+n+" chats?";
 $("deleteChatsText").textContent=(n===1?"This chat":"These chats")+" and all "+(n===1?"its":"their")+" messages and photos will be removed from this device and the contact"+(n===1?" ":"s ")+"removed from your list. Nothing is deleted from the other person's device.";
@@ -2374,11 +2374,11 @@ hide("deleteChatsDialog");
 }
 
 function deleteSelectedChats(){
-const list=[...sel.set].filter(pk=>data.contacts[pk]);
+const list=[...rustleSel.set].filter(pk=>data.contacts[pk]);
 closeDeleteChatsDialog();
 list.forEach(purgeContact);
-sel.on=false;
-sel.set.clear();
+rustleSel.on=false;
+rustleSel.set.clear();
 $("home").classList.remove("select-mode");
 save();
 renderList();
@@ -2413,19 +2413,19 @@ if(data.unread[pk]){
 meta.append(el("span","badge",data.unread[pk]>99?"99+":String(data.unread[pk])));
 }
 
-if(sel.on){
+if(rustleSel.on){
 const chk=el("span","selchk");
 chk.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>';
 row.append(chk,av,main,meta);
-row.classList.toggle("selected",sel.set.has(pk));
-row.setAttribute("aria-selected",sel.set.has(pk)?"true":"false");
+row.classList.toggle("selected",rustleSel.set.has(pk));
+row.setAttribute("aria-selected",rustleSel.set.has(pk)?"true":"false");
 }else{
 row.append(av,main,meta);
 }
 
 row.onclick=()=>{
-if(Date.now()<sel.ignoreClickUntil)return;
-if(sel.on)toggleSelected(pk);
+if(Date.now()<rustleSel.ignoreClickUntil)return;
+if(rustleSel.on)toggleSelected(pk);
 else openThread(pk);
 };
 
@@ -2438,9 +2438,9 @@ lpX=e.clientX;lpY=e.clientY;
 lpCancel();
 lpTimer=setTimeout(()=>{
 lpTimer=null;
-sel.ignoreClickUntil=Date.now()+700;
+rustleSel.ignoreClickUntil=Date.now()+700;
 if(navigator.vibrate)try{navigator.vibrate(15)}catch{}
-if(sel.on)toggleSelected(pk);
+if(rustleSel.on)toggleSelected(pk);
 else enterSelectMode(pk);
 },450);
 });
@@ -2567,11 +2567,11 @@ return (data.contacts[pk]+" "+(pr.u||"")+" "+pk).toLowerCase().includes(q);
 })
 .sort((a,b)=>(getMessages(b).at(-1)?.t||0)-(getMessages(a).at(-1)?.t||0));
 
-sel.visible=ids;
+rustleSel.visible=ids;
 
-if(sel.on){
-[...sel.set].forEach(pk=>{if(!data.contacts[pk])sel.set.delete(pk);});
-if(!sel.set.size){sel.on=false;$("home").classList.remove("select-mode");}
+if(rustleSel.on){
+[...rustleSel.set].forEach(pk=>{if(!data.contacts[pk])rustleSel.set.delete(pk);});
+if(!rustleSel.set.size){rustleSel.on=false;$("home").classList.remove("select-mode");}
 else updateSelectBar();
 }
 
@@ -3841,9 +3841,4 @@ function showHow(){
 
 const ua=navigator.userAgent;
 
-const ios=/iphone|ipad|ipod/i.test(ua)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
-
-const inApp=/FBAN|FBAV|Instagram|Telegram|; wv\)/i.test(ua);
-
-const steps=inApp
-?["Open this page in <b>Chrome</b> (menu <b>⋮</b> → <b>Open in browser</b>)"
+const ios=/iphone|ipad|ipo
