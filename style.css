@@ -2,6 +2,7 @@
    If neither file is present the app simply keeps using the system font. */
 @font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url("./InterVariable.woff2") format("woff2"),url("./Inter.ttf") format("truetype")}
 @font-face{font-family:"Space Grotesk";font-style:normal;font-weight:700;font-display:swap;src:url("./space-grotesk_bold.ttf") format("truetype")}
+@font-face{font-family:"Jura";font-style:normal;font-weight:500;font-display:swap;src:url("./jura-medium.ttf") format("truetype")}
 /* RUSTLE — design tokens
    One neutral-violet palette. Surfaces carry almost no chroma; the accent is a
    single muted violet used for actions, active states and the verified seal. */
@@ -861,3 +862,6 @@ animation:breeze 6.5s ease-in-out infinite
 .box h2,.dialog-card h2,.section h3,.howto h3,
 .pf-sec>summary,.pf-toggle-tx b,.selcount{font-family:var(--display);font-weight:700;font-synthesis:none}
 .brand{font-style:normal;letter-spacing:-.02em;font-feature-settings:normal}
+
+/* corner wordmark: Jura (Medium + light stroke for a bold look) */
+.brand{font-family:"Jura","Space Grotesk",var(--display);font-weight:500;font-synthesis:none;letter-spacing:.005em;-webkit-text-stroke:.034em currentColor;paint-order:stroke fill}
