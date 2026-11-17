@@ -2716,6 +2716,7 @@ if(m.image){
  viewBtn.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9V4h5m8 0h5v5M3 15v5h5m8 0h5v-5"/></svg><span>View</span>';
  viewBtn.setAttribute("aria-label","View photo full screen");viewBtn.onclick=()=>openImageViewer(img.src,im.name||"Shared photo",rid);
  actions.append(saveBtn,shareBtn,viewBtn);d.append(actions);
+ if(m.me&&m.st!=="ok")d.append(el("div","image-note","Photos can only be sent securely when you and your friend are both online."));
  img.addEventListener("click",()=>openImageViewer(img.src,im.name||"Shared photo",rid));
  img.setAttribute("role","button");img.setAttribute("tabindex","0");img.setAttribute("aria-label","Open photo: "+(im.name||"Shared image"));
  img.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openImageViewer(img.src,im.name||"Shared photo",rid);}});

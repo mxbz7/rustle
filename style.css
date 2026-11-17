@@ -647,3 +647,11 @@ animation:homeBackIn .3s ease-out both
 @media (prefers-reduced-motion:reduce){
 #thread.leaving,#home.revealing{animation:none}
 }
+
+/* Highlighted note under photos that are still waiting to be delivered */
+.image-note{
+margin:8px 2px 2px;padding:7px 10px;border-radius:10px;
+background:#ffd95a;color:#2b2200;
+font-size:12px;font-weight:800;line-height:1.35;
+box-shadow:0 0 0 1px #00000022 inset
+}
