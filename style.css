@@ -622,3 +622,28 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-r
 .emoji-grid{flex:1;min-height:0;overflow-y:auto;display:grid;grid-template-columns:repeat(8,1fr);align-content:start;gap:2px;padding:8px;overscroll-behavior:contain;touch-action:pan-y;-webkit-overflow-scrolling:touch}
 .emoji-grid button{min-height:42px;padding:0;border-radius:10px;background:transparent;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;font-size:26px;line-height:1}
 .emoji-grid button:active{background:var(--surface-2)}
+
+
+/* Back from a chat to the chat list: shrink + round + slide out, list scales up beneath */
+#thread.leaving{
+position:fixed;left:0;top:0;width:100%;z-index:15;pointer-events:none;
+transform-origin:100% 50%;will-change:transform;background:var(--bg);
+box-shadow:-10px 0 40px #0009;
+animation:threadBackOut .3s cubic-bezier(.3,0,.2,1) forwards
+}
+@keyframes threadBackOut{
+0%{transform:translateX(0) scale(1);border-radius:0}
+30%{transform:translateX(2%) scale(.92);border-radius:28px}
+100%{transform:translateX(108%) scale(.92);border-radius:28px}
+}
+#home.revealing{
+transform-origin:50% 50%;
+animation:homeBackIn .3s ease-out both
+}
+@keyframes homeBackIn{
+0%{transform:scale(.94);filter:brightness(.55)}
+100%{transform:none;filter:none}
+}
+@media (prefers-reduced-motion:reduce){
+#thread.leaving,#home.revealing{animation:none}
+}

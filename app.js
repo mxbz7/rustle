@@ -2495,6 +2495,7 @@ box.append(el("div","hintrow","Type at least 2 letters of a @username."));
 /* OPEN CHAT */
 
 function openThread(pk){
+if(finishThreadLeave)finishThreadLeave();
 queueProfileSync(pk);
 
 $("searchPanel").classList.add("hidden");
@@ -2797,6 +2798,10 @@ function closeEmojiPanel(){
 
 /* Back navigation: see navHistory() inside wire(). Closing the chat just hides it;
    the history entry is reconciled automatically. */
+/* Leaving a chat: the chat shrinks, gets rounded corners and slides off to the right
+   while the chat list underneath scales up and brightens (Android-style back). */
+let finishThreadLeave=null;
+
 function closeThreadView(){
 
 closeEmojiPanel();
@@ -2805,10 +2810,37 @@ current=null;
 
 setTab("chats");
 
-hide("thread");
-show("home");
+const th=$("thread"),home=$("home");
+const animate=!th.classList.contains("hidden")&&!(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches);
 
+if(finishThreadLeave)finishThreadLeave();
+
+show("home");
 renderList();
+
+if(!animate){
+hide("thread");
+return;
+}
+
+th.classList.add("leaving");
+home.classList.add("revealing");
+
+let done=false;
+const fin=()=>{
+if(done)return;
+done=true;
+clearTimeout(timer);
+th.removeEventListener("animationend",onEnd);
+th.classList.remove("leaving");
+home.classList.remove("revealing");
+hide("thread");
+if(finishThreadLeave===fin)finishThreadLeave=null;
+};
+const onEnd=e=>{if(e.target===th)fin();};
+const timer=setTimeout(fin,500);
+th.addEventListener("animationend",onEnd);
+finishThreadLeave=fin;
 
 }
 
@@ -3388,7 +3420,7 @@ const layers=[ /* top-most first: [isOpen, close] */
 [()=>!hiddenEl("csheet"),()=>closeContactSheet()],
 [()=>!hiddenEl("sheet"),()=>closeSheet()],
 [()=>!hiddenEl("emojiPanel"),()=>closeEmojiPanel()],
-[()=>!hiddenEl("thread"),()=>closeThreadView()],
+[()=>!hiddenEl("thread")&&!$("thread").classList.contains("leaving"),()=>closeThreadView()],
 [()=>$("home").classList.contains("search-mode"),()=>closeSearchView()]
 ];
 const depth=()=>layers.filter(l=>l[0]()).length;
