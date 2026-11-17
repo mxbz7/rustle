@@ -171,7 +171,7 @@ background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' vie
 /* home header */
 .brandwrap{display:flex;align-items:center;gap:9px;flex:none;min-width:0}
 .logo-mark{width:34px;height:34px;flex:none}
-.brand{font-size:25px;font-style:italic;font-weight:800;letter-spacing:.01em;line-height:1;color:var(--ink)}
+.brand{font-size:26px;font-style:normal;font-weight:650;letter-spacing:-.028em;line-height:1;color:var(--ink);font-feature-settings:"ss01","cv11","calt";text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased}
 .vsep{width:1px;align-self:stretch;margin:8px 2px;background:var(--line-2);flex:none}
 .statusrow{flex:1;min-width:0;display:flex;align-items:center;gap:9px}
 .statusrow .dot{width:9px;height:9px;border-radius:50%;background:var(--faint);flex:none;align-self:flex-start;margin-top:6px}
