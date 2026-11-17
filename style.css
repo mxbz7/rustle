@@ -322,7 +322,7 @@ font-size:13px;font-weight:500
 .tab.active::after{content:"";position:absolute;left:50%;bottom:0;width:28px;height:3px;transform:translateX(-50%);border-radius:3px;background:var(--acc)}
 
 /* thread */
-.back{background:transparent;color:var(--ink);padding:6px 4px;min-height:0;display:grid;place-items:center;flex:none}
+.back{background:transparent;color:var(--ink);padding:8px 10px;margin-left:-8px;min-width:44px;min-height:44px;display:grid;place-items:center;flex:none}
 #thread .top{z-index:8;gap:10px;border-bottom:1px solid var(--line)}
 .threadhead{flex:1;min-width:0;line-height:1.25;cursor:pointer}
 .threadhead b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:17px}
