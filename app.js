@@ -1021,6 +1021,7 @@ const IMAGE_TYPES=["image/jpeg","image/png"];
 const busyImages=new Set();
 const imgState=new Map();
 const urlCache=new Map();
+const imgRatio=new Map();
 const rtcPeers=new Map();
 const acks=new Map();
 const signalSeen=new Set();
@@ -2948,20 +2949,31 @@ if(m.image){
  img.setAttribute("role","button");img.setAttribute("tabindex","0");img.setAttribute("aria-label","Open photo: "+(im.name||"Shared image"));
  img.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openImageViewer(img.src,im.name||"Shared photo",rid);}});
 
- getLocalImage(rid).then(blob=>{
-  if(!d.isConnected)return;
-  if(blob){
-   img.src=objectUrl(rid,blob);
-   img.addEventListener("load",()=>{if(current&&d.isConnected){const sc=$("sc");if(sc&&sc.scrollHeight-sc.scrollTop-sc.clientHeight<120)scrollThreadToLatest();}},{once:true});
-   img.classList.remove("hidden");
-   actions.classList.remove("hidden");
-   holder.remove();
-  }else{
-   holder.textContent="This image is not stored on this device.";
-  }
- }).catch(()=>{
-  if(d.isConnected)holder.textContent="Could not read this device's image storage.";
- });
+ const showImg=(url,pin)=>{
+  img.src=url;
+  if(imgRatio.has(rid))img.style.aspectRatio=imgRatio.get(rid);
+  img.addEventListener("load",()=>{
+   if(img.naturalWidth&&img.naturalHeight)imgRatio.set(rid,img.naturalWidth+" / "+img.naturalHeight);
+   if(pin&&current&&d.isConnected){const sc=$("sc");if(sc&&sc.scrollHeight-sc.scrollTop-sc.clientHeight<120)scrollThreadToLatest();}
+  },{once:true});
+  img.classList.remove("hidden");
+  actions.classList.remove("hidden");
+  holder.remove();
+ };
+
+ /* Already-known photo: show it synchronously so re-renders never flash a "Loading…" box. */
+ const cachedUrl=urlCache.get(rid);
+ if(cachedUrl){
+  showImg(cachedUrl,false);
+ }else{
+  getLocalImage(rid).then(blob=>{
+   if(!d.isConnected)return;
+   if(blob)showImg(objectUrl(rid,blob),true);
+   else holder.textContent="This image is not stored on this device.";
+  }).catch(()=>{
+   if(d.isConnected)holder.textContent="Could not read this device's image storage.";
+  });
+ }
 
 }else{
  const body=el("span","message-text",m.text);
