@@ -2757,6 +2757,21 @@ scrollThreadToLatest();
 
 /* NAVIGATION */
 
+/* Emoji panel helpers live at top level so back() and popstate can reach them. */
+function emojiPanelOpen(){return !$("emojiPanel").classList.contains("hidden");}
+
+function openEmojiPanel(){
+  $("emojiPanel").classList.remove("hidden");
+  $("emojiBtn").setAttribute("aria-expanded","true");
+  $("txt").blur();
+  setTimeout(()=>scrollThreadToLatest(),60);
+}
+
+function closeEmojiPanel(){
+  $("emojiPanel").classList.add("hidden");
+  $("emojiBtn").setAttribute("aria-expanded","false");
+}
+
 /* Back navigation.
    Opening a chat pushes one history entry, so the system back gesture / button
    returns to the chat list instead of closing the installed app. */
@@ -3323,20 +3338,6 @@ function deleteBeforeCursor(){
     inp.setRangeText("",start-cut,start,"end");
   }
   inp.dispatchEvent(new Event("input",{bubbles:true}));
-}
-
-function emojiPanelOpen(){return !$("emojiPanel").classList.contains("hidden");}
-
-function openEmojiPanel(){
-  $("emojiPanel").classList.remove("hidden");
-  $("emojiBtn").setAttribute("aria-expanded","true");
-  $("txt").blur();
-  setTimeout(()=>scrollThreadToLatest(),60);
-}
-
-function closeEmojiPanel(){
-  $("emojiPanel").classList.add("hidden");
-  $("emojiBtn").setAttribute("aria-expanded","false");
 }
 
 (function initEmojiPicker(){
