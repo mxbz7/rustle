@@ -867,6 +867,5 @@ animation:breeze 6.5s ease-in-out infinite
 .brand{font-family:"Jura","Space Grotesk",var(--display);font-weight:500;font-synthesis:none;letter-spacing:.005em;-webkit-text-stroke:.034em currentColor;paint-order:stroke fill}
 
 /* rounded SVG ticks (ticks.js) */
-.m .message-ticks{display:inline-flex;align-items:center;line-height:0}
-.m .message-ticks .tick{display:block;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;color:#ffffffb3}
+.m .message-ticks .tick{display:inline-block;vertical-align:-1px;margin-left:1px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;color:#ffffffb3}
 .m .message-ticks .tick.dl{color:#fff}

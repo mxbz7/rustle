@@ -2,6 +2,21 @@
 
 const $=id=>document.getElementById(id);
 
+/* ROUNDED SVG TICKS (sent = one tick, seen = two) */
+function tickIcon(double){
+ const NS="http://www.w3.org/2000/svg";
+ const svg=document.createElementNS(NS,"svg");
+ svg.setAttribute("class",double?"tick dl":"tick");
+ svg.setAttribute("width",double?"20":"14");
+ svg.setAttribute("height","11");
+ svg.setAttribute("viewBox",double?"0 0 20 11":"0 0 14 11");
+ svg.setAttribute("role","img");
+ svg.setAttribute("aria-label",double?"Seen":"Sent");
+ const p1=document.createElementNS(NS,"path");p1.setAttribute("d","M1.8 5.8 5.2 9.2 12.2 1.8");svg.appendChild(p1);
+ if(double){const p2=document.createElementNS(NS,"path");p2.setAttribute("d","M8.6 8.4 9.2 9.2 18.2 1.8");svg.appendChild(p2);}
+ return svg;
+}
+
 /* SUPABASE CONFIGURATION */
 
 const SUPABASE_URL="https://battrqecbyydvqbzrsxi.supabase.co";
@@ -2952,9 +2967,9 @@ if(m.image){
 const meta=document.createElement("small");
 
 meta.textContent=fmt(m.t)+(m.me?
-(m.st==="ok"?" · "+(m.seen?"✓✓":"✓"):m.st==="failed"?" · not sent":" · sending…")
+(m.st==="ok"?" · ":m.st==="failed"?" · not sent":" · sending…")
 :"");
-if(m.me&&m.st==="ok")meta.classList.add("message-ticks");
+if(m.me&&m.st==="ok"){meta.classList.add("message-ticks");meta.append(tickIcon(!!m.seen));}
 
 d.append(meta);
 
