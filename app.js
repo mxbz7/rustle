@@ -3063,6 +3063,11 @@ function purgeContact(pk){
 
 closePeer(pk);
 
+/* Relays still hold the old encrypted events and send them again on every start.
+   Remember when this chat was deleted so those are never imported again. */
+data.clearedAt=data.clearedAt||{};
+data.clearedAt[pk]=Math.floor(Date.now()/1000);
+
 delete data.contacts[pk];
 delete data.messages[pk];
 delete data.unread[pk];
