@@ -60,6 +60,13 @@
 <button id="me" class="avatar sm" aria-label="My profile"></button>
 </header>
 
+<header class="selbar" id="selBar">
+<button id="selCancel" class="quiet selx" aria-label="Cancel selection"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+<div class="selcount" id="selCount" aria-live="polite">0 selected</div>
+<button id="selAll" class="quiet selbtn" type="button">Select all</button>
+<button id="selDelete" class="quiet selbtn seldel" type="button" aria-label="Delete selected chats" disabled><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2m-9 0 1 14h8l1-14M10 10v7M14 10v7"/></svg></button>
+</header>
+
 <div class="searchwrap search-panel hidden" id="searchPanel">
 <div class="search-panel-head"><button id="searchBack" class="quiet" aria-label="Back to chats">‹</button><label class="searchbox">
 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
@@ -225,9 +232,18 @@
   </div>
 </div>
 
+<div id="deleteChatsDialog" class="dialog-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="deleteChatsTitle">
+  <div class="dialog-card">
+    <div class="dialog-grip" aria-hidden="true"></div>
+    <h2 id="deleteChatsTitle">Delete chats?</h2>
+    <p class="hint" id="deleteChatsText"></p>
+    <div class="two"><button id="deleteChatsCancel" class="alt" type="button">Cancel</button><button id="deleteChatsConfirm" class="dangerbtn" type="button">Delete</button></div>
+  </div>
+</div>
+
 <script src="./nostr.bundle.js"></script>
 
-<script src="./app.js?v=54"></script>
+<script src="./app.js?v=55"></script>
 
 </body>
 </html>

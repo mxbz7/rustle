@@ -655,3 +655,19 @@ background:#ffd95a;color:#2b2200;
 font-size:12px;font-weight:800;line-height:1.35;
 box-shadow:0 0 0 1px #00000022 inset
 }
+
+/* chat list: long-press multi-select */
+#list .row{-webkit-touch-callout:none}
+.selbar{display:none;position:relative;z-index:2;align-items:center;gap:6px;padding:calc(10px + env(safe-area-inset-top)) 12px 10px;min-height:calc(64px + env(safe-area-inset-top));background:var(--bg)}
+.selbar .selx,.selbar .selbtn{min-height:44px;min-width:44px;padding:0 12px;border-radius:12px;display:inline-grid;place-items:center;color:var(--ink);background:transparent;font-size:15px;font-weight:600}
+.selbar .selbtn:not(.seldel){color:var(--acc)}
+.selbar .seldel{color:var(--danger)}
+.selbar .seldel:disabled{opacity:.35}
+.selcount{flex:1;min-width:0;font-size:18px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#home.select-mode>.top,#home.select-mode>.search-panel,#home.select-mode .tabs,#home.select-mode #homeScroll .notice{display:none!important}
+#home.select-mode>.selbar{display:flex}
+#home.select-mode #homeScroll{padding-bottom:24px}
+#list .row .selchk{flex:none;width:24px;height:24px;border-radius:50%;border:2px solid var(--line-2);display:grid;place-items:center;color:transparent;transition:background .15s,border-color .15s}
+#list .row .selchk svg{width:14px;height:14px}
+#list .row.selected{background:var(--surface-2);border-color:var(--acc)}
+#list .row.selected .selchk{background:var(--pri);border-color:var(--pri);color:#fff}
