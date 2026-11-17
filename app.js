@@ -2828,6 +2828,10 @@ threadPin.ro.observe(sc);
 }
 }
 
+/* only messages that were not on screen before get the fade-in; a re-render must not replay it for the whole chat */
+let renderedThread=null;
+const renderedIds=new Set();
+
 function renderThread(){
 
 if(!current)return;
@@ -2836,6 +2840,9 @@ if(readMessageObserver){readMessageObserver.disconnect();readMessageObserver=nul
 const box=$("msgs");
 
 box.textContent="";
+
+const fresh=renderedThread!==current;
+if(fresh){renderedIds.clear();renderedThread=current;}
 
 const list=getMessages(current);
 
@@ -2898,6 +2905,8 @@ lastDay=day;
 const d=document.createElement("div");
 
 d.className="m"+(m.me?" me":"")+(m.image?" image-message":"");
+if(!fresh&&!renderedIds.has(m.id))d.classList.add("m-new");
+renderedIds.add(m.id);
 
 if(m.image){
 

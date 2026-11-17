@@ -345,9 +345,9 @@ background:var(--surface-2);
 white-space:pre-wrap;
 overflow-wrap:anywhere;
 align-self:flex-start;
-margin-top:2px;
-animation:message-in .2s var(--ease) both
+margin-top:2px
 }
+.m.m-new{animation:message-in .2s var(--ease) both}
 .m.me{align-self:flex-end;background:var(--sent);border-radius:18px 18px 5px 18px}
 .m small{display:block;font-size:10.5px;opacity:.7;text-align:right;margin-top:2px;font-variant-numeric:tabular-nums;font-weight:700}
 .m .message-ticks{color:var(--ink);font-weight:700;letter-spacing:.02em}
