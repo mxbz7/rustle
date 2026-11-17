@@ -179,6 +179,16 @@ applyTheme.timer=setTimeout(()=>root.classList.remove("theme-anim"),450);
 }
 root.setAttribute("data-theme",t);
 try{localStorage.setItem("rustle-theme",t)}catch{}
+if(animate){
+const tb=$("themeToggle");
+if(tb){
+tb.classList.remove("is-animating");
+void tb.offsetWidth;
+tb.classList.add("is-animating");
+clearTimeout(applyTheme.burst);
+applyTheme.burst=setTimeout(()=>tb.classList.remove("is-animating"),750);
+}
+}
 const m=document.querySelector('meta[name="theme-color"]');
 if(m)m.setAttribute("content",t==="light"?"#f6f5fb":"#0d0c13");
 const b=$("themeToggle");
