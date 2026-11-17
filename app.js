@@ -3021,6 +3021,12 @@ function purgeContact(pk){
 
 closePeer(pk);
 
+/* Relays still hold the old encrypted events and re-send them on reconnect;
+   remember when this chat was deleted so those are not re-imported. Only
+   messages sent after this moment bring the chat back. */
+data.clearedAt=data.clearedAt||{};
+data.clearedAt[pk]=Math.floor(Date.now()/1000);
+
 delete data.contacts[pk];
 delete data.messages[pk];
 delete data.unread[pk];
@@ -3840,102 +3846,4 @@ const ios=/iphone|ipad|ipod/i.test(ua)||(navigator.platform==="MacIntel"&&naviga
 const inApp=/FBAN|FBAV|Instagram|Telegram|; wv\)/i.test(ua);
 
 const steps=inApp
-?["Open this page in <b>Chrome</b> (menu <b>⋮</b> → <b>Open in browser</b>)","Tap <b>Install RUSTLE</b> again"]
-:ios
-?["Tap the <b>Share</b> button in Safari","Choose <b>Add to Home Screen</b>","Tap <b>Add</b>, then open RUSTLE from your home screen"]
-:["Open your browser menu (<b>⋮</b>)","Tap <b>Install app</b> or <b>Add to Home screen</b>","Open RUSTLE from your home screen"];
-
-$("howSteps").innerHTML=steps.map(x=>"<li>"+x+"</li>").join("");
-
-how.classList.remove("hidden");
-
-how.scrollIntoView({behavior:"smooth",block:"nearest"});
-
-}
-
-async function install(){
-
-if(!deferredInstall){
-showHow();
-return;
-}
-
-const p=deferredInstall;
-
-deferredInstall=null;
-
-p.prompt();
-
-const choice=await p.userChoice.catch(()=>null);
-
-if(choice&&choice.outcome==="accepted")markInstalled();
-
-}
-
-big.onclick=install;
-mini.onclick=install;
-
-window.addEventListener("appinstalled",markInstalled);
-
-/* small install pill appears once the big button scrolls out of view */
-
-if("IntersectionObserver"in window){
-
-new IntersectionObserver(([en])=>{
-mini.classList.toggle("show",!en.isIntersecting);
-},{rootMargin:"-64px 0px 0px 0px"}).observe(big);
-
-}else{
-mini.classList.add("show");
-}
-
-addEventListener("scroll",()=>{
-$("sitebar").classList.toggle("scrolled",scrollY>4);
-},{passive:true});
-
-}
-
-/* Prevent accidental page zoom across RUSTLE; photo viewer remains zoomable. */
-(function lockAppZoom(){
-  document.addEventListener("touchmove",function(e){
-    if(e.touches && e.touches.length > 1 && !e.target.closest(".image-viewer:not(.hidden)")) e.preventDefault();
-  },{passive:false});
-  document.addEventListener("gesturestart",function(e){
-    if(!e.target.closest(".image-viewer:not(.hidden)")) e.preventDefault();
-  },{passive:false});
-  document.addEventListener("gesturechange",function(e){
-    if(!e.target.closest(".image-viewer:not(.hidden)")) e.preventDefault();
-  },{passive:false});
-  document.addEventListener("wheel",function(e){
-    if(e.ctrlKey && !e.target.closest(".image-viewer:not(.hidden)")) e.preventDefault();
-  },{passive:false});
-})();
-
-/* APPLICATION START */
-
-const installedApp=
-matchMedia("(display-mode: standalone), (display-mode: fullscreen), (display-mode: minimal-ui)").matches||
-navigator.standalone===true||
-document.referrer.startsWith("android-app://");
-
-if(installedApp||new URLSearchParams(location.search).has("app")){
-
-wire();
-
-boot().catch(error=>{
-  console.error("RUSTLE startup failed:",error);
-  status("RUSTLE could not start. Reload to try again.");
-  show("home");
-  const list=$("list");
-  if(list){list.textContent="";list.append(stateBlock(ICON_WARN,"Could not start RUSTLE","Something went wrong while loading the app. Your locally stored identity and messages have not been intentionally changed.","Reload",()=>location.reload()));}
-});
-
-}else{
-
-document.querySelectorAll("#home,#thread,#sheet,#csheet").forEach(n=>n.remove());
-
-show("landing");
-
-initLanding();
-
-}
+?["Open this page in <b>Chrome</b> (menu <b>⋮</b> → <b>Open in browser</b>)"
